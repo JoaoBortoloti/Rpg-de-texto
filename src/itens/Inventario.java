@@ -63,12 +63,30 @@ public class Inventario {
     }
 
     public Item buscarPorNome(String nome) {
+        if (nome == null || nome.trim().isEmpty()) {
+            return null;
+        }
+        
+        String nomeBusca = nome.trim();
+        
         for (Item item : itens.values()) {
-            if (item.getNome().equalsIgnoreCase(nome)) {
+            if (item.getNome().trim().equalsIgnoreCase(nomeBusca)) {
                 return item;
             }
         }
+        
         return null;
+    }
+    
+    public Item buscarPorIndice(int indice) {
+        List<Item> itensOrdenados = listarOrdenado();
+        if (indice < 0 || indice >= itensOrdenados.size()) {
+            return null;
+        }
+        
+        Item itemCopia = itensOrdenados.get(indice);
+        // Retorna o item original do HashMap, não a cópia
+        return buscarPorNome(itemCopia.getNome());
     }
 
     public List<Item> listarOrdenado() {

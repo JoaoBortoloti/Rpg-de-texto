@@ -6,5 +6,5 @@ RPG de texto desenvolvido em Java que demonstra os principais conceitos de Progr
 ## 🎮 Como Jogar
 
 ### Compilação
-```bash
-javac -d bin src/**/*.java
+javac -d bin -sourcepath src src\sistema\Main.java
+java -cp bin sistema.Main

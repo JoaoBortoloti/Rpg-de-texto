@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 public class Jogo {
     private Personagem jogador;
@@ -16,7 +17,7 @@ public class Jogo {
     private Personagem savePoint;
 
     public Jogo() {
-        this.reader = new BufferedReader(new InputStreamReader(System.in));
+        this.reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
         this.xpAtual = 0;
         this.xpProximoNivel = 100;
         this.jogoAtivo = true;
@@ -63,7 +64,7 @@ public class Jogo {
         jogador.getInventario().adicionar(new Item("Poção de Vida", "Restaura 30 HP", Efeito.CURA, 3, 30));
         jogador.getInventario().adicionar(new Item("Poção de Força", "Aumenta ataque em 5", Efeito.BUFF_ATAQUE, 1, 5));
         
-        System.out.println("\n✅ Personagem criado com sucesso!");
+        System.out.println("\nPersonagem criado com sucesso!");
         System.out.println(jogador.getStatus());
     }
 
@@ -80,7 +81,7 @@ public class Jogo {
     private void loopPrincipal() {
         while (jogoAtivo && jogador.estaVivo()) {
             exibirMenu();
-            int opcao = lerOpcao(1, 7);
+            int opcao = lerOpcao(1, 8);
             
             switch (opcao) {
                 case 1:
@@ -102,6 +103,9 @@ public class Jogo {
                     criarSavePoint();
                     break;
                 case 7:
+                    restaurarSavePoint();
+                    break;
+                case 8:
                     sair();
                     break;
             }
@@ -121,12 +125,13 @@ public class Jogo {
         System.out.println("4. Ver status");
         System.out.println("5. Usar habilidade especial");
         System.out.println("6. Criar save point");
-        System.out.println("7. Sair do jogo");
+        System.out.println("7. Restaurar save point");
+        System.out.println("8. Sair do jogo");
         System.out.print("Escolha: ");
     }
 
     private void explorar() {
-        System.out.println("\n🔍 Explorando...");
+        System.out.println("\nExplorando...");
         int evento = Dado.rolar(10);
         
         if (evento <= 5) {
@@ -146,7 +151,7 @@ public class Jogo {
 
     private void encontrarInimigo() {
         Inimigo inimigo = Inimigo.criarInimigoAleatorio(jogador.getNivel());
-        System.out.println("\n⚔️ Um " + inimigo.getNome() + " apareceu!");
+        System.out.println("\nUm " + inimigo.getNome() + " apareceu!");
         System.out.println(inimigo.getStatus());
         
         batalhar(inimigo);
@@ -154,7 +159,7 @@ public class Jogo {
 
     private void batalhar(Inimigo inimigo) {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("⚔️ COMBATE INICIADO!");
+        System.out.println("COMBATE INICIADO!");
         System.out.println("=".repeat(50));
         
         while (jogador.estaVivo() && inimigo.estaVivo()) {
@@ -168,12 +173,12 @@ public class Jogo {
             if (acao == 1) {
                 // Jogador ataca
                 int rolagemJogador = Dado.rolarD6();
-                System.out.println("🎲 Você rolou: " + rolagemJogador);
+                System.out.println("Você rolou: " + rolagemJogador);
                 
                 int danoJogador = jogador.calcularDano(rolagemJogador);
                 inimigo.receberDano(danoJogador);
                 
-                System.out.println("💥 Você causou " + danoJogador + " de dano!");
+                System.out.println("Você causou " + danoJogador + " de dano!");
                 System.out.println(inimigo.getStatus());
                 
             } else if (acao == 2) {
@@ -182,10 +187,10 @@ public class Jogo {
             } else {
                 // Tentar fugir
                 if (tentarFugir()) {
-                    System.out.println("🏃 Você fugiu com sucesso!");
+                    System.out.println("Você fugiu com sucesso!");
                     return;
                 } else {
-                    System.out.println("❌ Não conseguiu fugir!");
+                    System.out.println("Não conseguiu fugir!");
                 }
             }
             
@@ -197,12 +202,12 @@ public class Jogo {
             // Turno do inimigo
             System.out.println("\n--- Turno do inimigo ---");
             int rolagemInimigo = Dado.rolarD6();
-            System.out.println("🎲 " + inimigo.getNome() + " rolou: " + rolagemInimigo);
+            System.out.println(inimigo.getNome() + " rolou: " + rolagemInimigo);
             
             int danoInimigo = inimigo.calcularDano(rolagemInimigo);
             jogador.receberDano(danoInimigo);
             
-            System.out.println("💥 Você recebeu " + danoInimigo + " de dano!");
+            System.out.println("Você recebeu " + danoInimigo + " de dano!");
             System.out.println(jogador.getStatus());
             
             aguardarEnter();
@@ -216,14 +221,14 @@ public class Jogo {
 
     private void vitoria(Inimigo inimigo) {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("🎉 VITÓRIA!");
+        System.out.println("VITÓRIA!");
         System.out.println("=".repeat(50));
         System.out.println("Você derrotou " + inimigo.getNome() + "!");
         
         // Ganhar XP
         int xpGanho = inimigo.getRecompensaXP();
         xpAtual += xpGanho;
-        System.out.println("📈 +" + xpGanho + " XP");
+        System.out.println(xpGanho + " XP");
         
         // Verificar level up
         if (xpAtual >= xpProximoNivel) {
@@ -247,7 +252,7 @@ public class Jogo {
         jogador.setAtaque(jogador.getAtaque() + 3);
         jogador.setDefesa(jogador.getDefesa() + 2);
         
-        System.out.println("\n⭐ LEVEL UP! Agora você é nível " + jogador.getNivel());
+        System.out.println("\nLEVEL UP! Agora você é nível " + jogador.getNivel());
         System.out.println("HP máximo aumentado!");
         System.out.println("Ataque e defesa aumentados!");
     }
@@ -260,7 +265,7 @@ public class Jogo {
             return;
         }
         
-        System.out.println("\n💰 Itens encontrados:");
+        System.out.println("\nItens encontrados:");
         for (Item item : itensInimigo) {
             System.out.println("  - " + item.getNome() + " (x" + item.getQuantidade() + ")");
             jogador.getInventario().adicionar(item);
@@ -286,63 +291,64 @@ public class Jogo {
                 break;
         }
         
-        System.out.println("✨ Você encontrou: " + item.getNome() + "!");
+        System.out.println("Você encontrou: " + item.getNome() + "!");
         jogador.getInventario().adicionar(item);
     }
 
     private void armadilha() {
-        System.out.println("⚠️ Você caiu em uma armadilha!");
+        System.out.println("Você caiu em uma armadilha!");
         int dano = Dado.rolar(15);
         jogador.receberDano(dano);
-        System.out.println("💥 Você recebeu " + dano + " de dano!");
+        System.out.println("Você recebeu " + dano + " de dano!");
         System.out.println(jogador.getStatus());
     }
 
     private void usarItem() {
         if (jogador.getInventario().estaVazio()) {
-            System.out.println("❌ Seu inventário está vazio!");
+            System.out.println("Seu inventário está vazio!");
             return;
         }
         
         System.out.println("\n" + jogador.getInventario());
-        System.out.print("Digite o nome do item (ou 'cancelar'): ");
-        String nomeItem = lerLinha();
+        System.out.print("Digite o número do item (ou 0 para cancelar): ");
         
-        if (nomeItem.equalsIgnoreCase("cancelar")) {
+        int escolha = lerOpcao(0, jogador.getInventario().getTamanho());
+        
+        if (escolha == 0) {
             return;
         }
         
-        Item item = jogador.getInventario().buscarPorNome(nomeItem);
-        
+        Item item = jogador.getInventario().buscarPorIndice(escolha - 1);
+
         if (item == null) {
-            System.out.println("❌ Item não encontrado!");
+            System.out.println("Item inválido!");
             return;
         }
         
         aplicarEfeitoItem(item);
         jogador.getInventario().remover(item.getNome(), 1);
-        System.out.println("✅ " + item.getNome() + " usado!");
+        System.out.println(item.getNome() + " usado!");
     }
 
     private void aplicarEfeitoItem(Item item) {
         switch (item.getEfeito()) {
             case CURA:
                 jogador.curar(item.getValorEfeito());
-                System.out.println("💚 Você recuperou " + item.getValorEfeito() + " HP!");
+                System.out.println("Você recuperou " + item.getValorEfeito() + " HP!");
                 break;
             case BUFF_ATAQUE:
                 jogador.setAtaque(jogador.getAtaque() + item.getValorEfeito());
-                System.out.println("⚔️ Seu ataque aumentou em " + item.getValorEfeito() + "!");
+                System.out.println("Seu ataque aumentou em " + item.getValorEfeito() + "!");
                 break;
             case BUFF_DEFESA:
                 jogador.setDefesa(jogador.getDefesa() + item.getValorEfeito());
-                System.out.println("🛡️ Sua defesa aumentou em " + item.getValorEfeito() + "!");
+                System.out.println("Sua defesa aumentou em " + item.getValorEfeito() + "!");
                 break;
             case DANO:
-                System.out.println("💣 Item de dano! Use em combate.");
+                System.out.println("Item de dano! Use em combate.");
                 break;
             default:
-                System.out.println("✨ Efeito especial aplicado!");
+                System.out.println("Efeito especial aplicado!");
         }
     }
 
@@ -371,7 +377,24 @@ public class Jogo {
             savePoint = new Arqueiro((Arqueiro) jogador);
         }
         
-        System.out.println("💾 Save point criado! Você pode restaurar este estado mais tarde.");
+        System.out.println("Save point criado! Você pode restaurar este estado mais tarde.");
+    }
+    
+    private void restaurarSavePoint() {
+        if (savePoint == null) {
+            System.out.println("Nenhum save point disponível!");
+            return;
+        }
+
+        if (savePoint instanceof Guerreiro) {
+            jogador = new Guerreiro((Guerreiro) savePoint);
+        } else if (savePoint instanceof Mago) {
+            jogador = new Mago((Mago) savePoint);
+        } else if (savePoint instanceof Arqueiro) {
+            jogador = new Arqueiro((Arqueiro) savePoint);
+        }
+
+        System.out.println("Save point restaurado! Seu progresso foi revertido para o estado salvo.");
     }
 
     private void sair() {
@@ -379,13 +402,13 @@ public class Jogo {
         String resposta = lerLinha();
         if (resposta.equalsIgnoreCase("s")) {
             jogoAtivo = false;
-            System.out.println("\n👋 Obrigado por jogar!");
+            System.out.println("\nObrigado por jogar!");
         }
     }
 
     private void gameOver() {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("💀 GAME OVER");
+        System.out.println("GAME OVER");
         System.out.println("=".repeat(50));
         System.out.println("Você foi derrotado...");
         System.out.println("Nível alcançado: " + jogador.getNivel());
@@ -400,9 +423,9 @@ public class Jogo {
                 if (opcao >= min && opcao <= max) {
                     return opcao;
                 }
-                System.out.print("❌ Opção inválida! Digite entre " + min + " e " + max + ": ");
+                System.out.print("Opção inválida! Digite entre " + min + " e " + max + ": ");
             } catch (IOException | NumberFormatException e) {
-                System.out.print("❌ Entrada inválida! Digite um número: ");
+                System.out.print("Entrada inválida! Digite um número: ");
             }
         }
     }
