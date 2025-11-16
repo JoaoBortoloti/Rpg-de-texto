@@ -12,12 +12,10 @@ public class Mago extends Personagem {
         this.poderMagico = 20;
     }
 
-    // Construtor padrão
     public Mago() {
         this("Mago", 80, 10, 5, 1);
     }
 
-    // Construtor de cópia
     public Mago(Mago outro) {
         super(outro);
         this.mana = outro.mana;
@@ -33,19 +31,22 @@ public class Mago extends Personagem {
         if (mana >= 10) {
             danoBase += poderMagico;
             mana -= 10;
-            System.out.println("✨ Magia conjurada! (-10 mana)");
+            System.out.println("Magia conjurada! (-10 mana)");
         }
         
         return danoBase;
     }
 
     @Override
-    public String usarHabilidadeEspecial() {
+    public String usarHabilidadeEspecial(Personagem alvo) {
         if (mana >= 30) {
             mana -= 30;
-            return "🔮 Bola de Fogo lançada! Dano massivo causado! (-30 mana)";
+            int rolagem = sistema.Dado.rolarD6();
+            int dano = poderMagico + 10 + rolagem;
+            alvo.receberDano(dano);
+            return String.format("Bola de Fogo usada. Mana: -30 | Rolagem: %d | Dano causado: %d", rolagem, dano);
         } else {
-            return "❌ Mana insuficiente para conjurar Bola de Fogo!";
+            return "Mana insuficiente para conjurar Bola de Fogo.";
         }
     }
 

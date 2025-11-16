@@ -8,16 +8,14 @@ public class Guerreiro extends Personagem {
 
     public Guerreiro(String nome, int pontosVida, int ataque, int defesa, int nivel) {
         super(nome, pontosVida, ataque, defesa, nivel);
-        this.chanceCritico = 20; // 20% de chance
+        this.chanceCritico = 20; 
         this.furia = false;
     }
 
-    // Construtor padrão
     public Guerreiro() {
         this("Guerreiro", 120, 15, 10, 1);
     }
 
-    // Construtor de cópia
     public Guerreiro(Guerreiro outro) {
         super(outro);
         this.chanceCritico = outro.chanceCritico;
@@ -28,26 +26,24 @@ public class Guerreiro extends Personagem {
     public int calcularDano(int rolagemDado) {
         int danoBase = super.calcularDano(rolagemDado);
         
-        // Verifica crítico
         if (Dado.rolar(100) <= chanceCritico) {
-            System.out.println("💥 GOLPE CRÍTICO!");
+            System.out.println("GOLPE CRÍTICO!");
             danoBase *= 2;
         }
 
-        // Aplica bônus de fúria
         if (furia) {
             danoBase = (int) (danoBase * 1.5);
-            System.out.println("🔥 Fúria ativada! Dano aumentado!");
+            System.out.println("Fúria ativada! Dano aumentado!");
         }
 
         return danoBase;
     }
 
     @Override
-    public String usarHabilidadeEspecial() {
+    public String usarHabilidadeEspecial(Personagem alvo) {
         furia = true;
         setDefesa(getDefesa() - 3);
-        return "⚔️ Guerreiro entra em FÚRIA! Ataque aumentado, defesa reduzida!";
+        return "Guerreiro entra em fúria. Ataque aumentado e defesa reduzida.";
     }
 
     public void desativarFuria() {

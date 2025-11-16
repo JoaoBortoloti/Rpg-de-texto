@@ -22,7 +22,6 @@ public abstract class Personagem implements Atacavel {
         this.inventario = new Inventario(20);
     }
 
-    // Construtor de cópia
     public Personagem(Personagem outro) {
         this.nome = outro.nome;
         this.pontosVida = outro.pontosVida;
@@ -33,7 +32,6 @@ public abstract class Personagem implements Atacavel {
         this.inventario = new Inventario(outro.inventario);
     }
 
-    // Getters e Setters
     public String getNome() {
         return nome;
     }
@@ -82,7 +80,6 @@ public abstract class Personagem implements Atacavel {
         return inventario;
     }
 
-    // Métodos de combate
     @Override
     public int calcularDano(int rolagemDado) {
         return ataque + rolagemDado;
@@ -103,10 +100,8 @@ public abstract class Personagem implements Atacavel {
         pontosVida = Math.min(pontosVida + quantidade, pontosVidaMaximos);
     }
 
-    // Método abstrato para habilidade especial
-    public abstract String usarHabilidadeEspecial();
+    public abstract String usarHabilidadeEspecial(Personagem alvo);
 
-    // Método para exibir status
     public String getStatus() {
         return String.format("%s (Nível %d) - HP: %d/%d | ATK: %d | DEF: %d",
                 nome, nivel, pontosVida, pontosVidaMaximos, ataque, defesa);

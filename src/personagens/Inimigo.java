@@ -15,12 +15,10 @@ public class Inimigo extends Personagem {
         gerarLoot();
     }
 
-    // Construtor padrão
     public Inimigo() {
         this("Goblin", 50, 8, 3, 1, "Comum");
     }
 
-    // Construtor de cópia
     public Inimigo(Inimigo outro) {
         super(outro);
         this.recompensaXP = outro.recompensaXP;
@@ -57,8 +55,8 @@ public class Inimigo extends Personagem {
     }
 
     @Override
-    public String usarHabilidadeEspecial() {
-        return "👹 " + getNome() + " usa ataque especial!";
+    public String usarHabilidadeEspecial(Personagem alvo) {
+        return getNome() + " usa ataque especial!";
     }
 
     public int getRecompensaXP() {

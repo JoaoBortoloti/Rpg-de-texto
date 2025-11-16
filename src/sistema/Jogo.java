@@ -15,12 +15,18 @@ public class Jogo {
     private int xpProximoNivel;
     private boolean jogoAtivo;
     private Personagem savePoint;
+    private int exploracoesRealizadas;
+    private int capituloAtual;
+    private boolean bossDerrotado;
 
     public Jogo() {
         this.reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
         this.xpAtual = 0;
         this.xpProximoNivel = 100;
         this.jogoAtivo = true;
+        this.exploracoesRealizadas = 0;
+        this.capituloAtual = 1;
+        this.bossDerrotado = false;
     }
 
     public void iniciar() {
@@ -70,25 +76,28 @@ public class Jogo {
 
     private void introducao() {
         System.out.println("\n" + "=".repeat(50));
+        System.out.println("CAPÍTULO 1: O DESPERTAR");
+        System.out.println("=".repeat(50));
         System.out.println("Você acorda em uma floresta escura...");
         System.out.println("Não se lembra de como chegou aqui.");
         System.out.println("Ao longe, você vê as ruínas de um castelo antigo.");
+        System.out.println("Dizem que um poderoso ser habita lá...");
         System.out.println("Sua jornada começa agora!");
         System.out.println("=".repeat(50) + "\n");
         aguardarEnter();
     }
 
     private void loopPrincipal() {
-        while (jogoAtivo && jogador.estaVivo()) {
+        while (jogoAtivo && jogador.estaVivo() && !bossDerrotado) {
             exibirMenu();
-            int opcao = lerOpcao(1, 8);
+            int opcao = lerOpcao(1, 7);
             
             switch (opcao) {
                 case 1:
                     explorar();
                     break;
                 case 2:
-                    usarItem();
+                    usarItem(null);
                     break;
                 case 3:
                     verInventario();
@@ -97,15 +106,12 @@ public class Jogo {
                     verStatus();
                     break;
                 case 5:
-                    usarHabilidadeEspecial();
-                    break;
-                case 6:
                     criarSavePoint();
                     break;
-                case 7:
+                case 6:
                     restaurarSavePoint();
                     break;
-                case 8:
+                case 7:
                     sair();
                     break;
             }
@@ -113,40 +119,223 @@ public class Jogo {
         
         if (!jogador.estaVivo()) {
             gameOver();
+        } else if (bossDerrotado) {
+            finalVitorioso();
         }
     }
 
     private void exibirMenu() {
         System.out.println("\n" + "─".repeat(50));
+        System.out.println("Capítulo " + capituloAtual + " | Explorações: " + exploracoesRealizadas);
         System.out.println("O que deseja fazer?");
         System.out.println("1. Explorar");
         System.out.println("2. Usar item");
         System.out.println("3. Ver inventário");
         System.out.println("4. Ver status");
-        System.out.println("5. Usar habilidade especial");
-        System.out.println("6. Criar save point");
-        System.out.println("7. Restaurar save point");
-        System.out.println("8. Sair do jogo");
+        System.out.println("5. Criar save point");
+        System.out.println("6. Restaurar save point");
+        System.out.println("7. Sair do jogo");
         System.out.print("Escolha: ");
     }
 
     private void explorar() {
         System.out.println("\nExplorando...");
+        System.out.println("[DEBUG] Explorações realizadas: " + exploracoesRealizadas);
+        System.out.println("\nExplorando...");
+        exploracoesRealizadas++;
+        
+        // Verifica progressão da história
+        if (exploracoesRealizadas % 2 == 0) {
+            avancarHistoria();
+            return;
+        }
+        
         int evento = Dado.rolar(10);
         
         if (evento <= 5) {
-            // Encontrou inimigo
             encontrarInimigo();
         } else if (evento <= 7) {
-            // Encontrou item
             encontrarItem();
         } else if (evento == 8) {
-            // Armadilha
             armadilha();
         } else {
-            // Nada aconteceu
             System.out.println("Você explorou a área mas não encontrou nada interessante.");
         }
+    }
+
+    private void avancarHistoria() {
+        capituloAtual++;
+        
+        System.out.println("\n" + "=".repeat(50));
+        
+        switch (capituloAtual) {
+            case 2:
+                System.out.println("CAPÍTULO 2: A VILA ABANDONADA");
+                System.out.println("=".repeat(50));
+                System.out.println("Você encontra uma vila abandonada.");
+                System.out.println("Sinais de batalha estão por toda parte.");
+                System.out.println("Nas paredes, escritos em sangue: 'Ele vem à noite'.");
+                System.out.println("Você sente que está se aproximando do castelo...");
+                break;
+                
+            case 3:
+                System.out.println("CAPÍTULO 3: O CEMITÉRIO AMALDIÇOADO");
+                System.out.println("=".repeat(50));
+                System.out.println("Um cemitério surge à sua frente.");
+                System.out.println("Mortos-vivos vagam entre as lápides.");
+                System.out.println("Uma energia sombria emana do solo.");
+                System.out.println("O castelo está cada vez mais próximo...");
+                break;
+                
+            case 4:
+                System.out.println("CAPÍTULO 4: A PONTE QUEBRADA");
+                System.out.println("=".repeat(50));
+                System.out.println("Você chega a uma ponte sobre um abismo.");
+                System.out.println("Do outro lado, o castelo se ergue imponente.");
+                System.out.println("Criaturas guardam a passagem.");
+                System.out.println("Você está quase lá...");
+                break;
+                
+            case 5:
+                System.out.println("CAPÍTULO 5: OS PORTÕES DO CASTELO");
+                System.out.println("=".repeat(50));
+                System.out.println("Finalmente, você alcança os portões do castelo.");
+                System.out.println("Eles se abrem lentamente, rangendo.");
+                System.out.println("Uma voz ecoa: 'Bem-vindo, aventureiro...'");
+                System.out.println("Prepare-se para o confronto final!");
+                break;
+                
+            default:
+                if (capituloAtual >= 6) {
+                    iniciarBossFight();
+                    return;
+                }
+        }
+        
+        System.out.println("=".repeat(50));
+        aguardarEnter();
+    }
+
+    private void iniciarBossFight() {
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("CAPÍTULO FINAL: O VORATH O ETERNO");
+        System.out.println("=".repeat(50));
+        System.out.println("Você entra no salão principal do castelo.");
+        System.out.println("No trono, uma figura sombria se levanta.");
+        System.out.println("'Você chegou longe, " + jogador.getNome() + "...'");
+        System.out.println("'Mas sua jornada termina aqui!'");
+        System.out.println("=".repeat(50));
+        aguardarEnter();
+        
+        // Cria o boss com stats aumentados
+        Inimigo boss = new Inimigo(
+            "Vorath, o Eterno",
+            200 + (jogador.getNivel() * 20),
+            20 + (jogador.getNivel() * 2),
+            15 + jogador.getNivel(),
+            jogador.getNivel() + 2,
+            "Boss Final" 
+        );
+        
+        // Adiciona itens raros ao boss
+        boss.getInventario().adicionar(new Item("Elixir Lendário", "Restaura 100 HP", Efeito.CURA, 2, 100));
+        boss.getInventario().adicionar(new Item("Essência das Trevas", "Aumenta ataque em 10", Efeito.BUFF_ATAQUE, 1, 10));
+        
+        System.out.println("\n" + boss.getStatus());
+        aguardarEnter();
+        
+        batalharBoss(boss);
+    }
+
+    private void batalharBoss(Inimigo boss) {
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("BATALHA FINAL!");
+        System.out.println("=".repeat(50));
+        
+        while (jogador.estaVivo() && boss.estaVivo()) {
+            System.out.println("\n--- Seu turno ---");
+            System.out.println("1. Atacar");
+            System.out.println("2. Usar item");
+            System.out.println("3. Habilidade especial");
+            
+            int acao = lerOpcao(1, 3);
+            
+            if (acao == 1) {
+                int rolagemJogador = Dado.rolarD6();
+                System.out.println("Você rolou: " + rolagemJogador);
+                
+                int danoJogador = jogador.calcularDano(rolagemJogador);
+                boss.receberDano(danoJogador);
+                
+                System.out.println("Você causou " + danoJogador + " de dano!");
+                System.out.println(boss.getStatus());
+                
+            } else if (acao == 2) {
+                usarItem(boss);
+                continue;
+            } else if (acao == 3) {
+                String resultado = jogador.usarHabilidadeEspecial(boss);
+                System.out.println(resultado);
+                System.out.println(boss.getStatus());
+            }
+            
+            if (!boss.estaVivo()) {
+                vitoriaBoss(boss);
+                return;
+            }
+            
+            // Turno do boss (ataque mais forte)
+            System.out.println("\n--- Turno do " + boss.getNome() + " ---");
+            int rolagemBoss = Dado.rolarD6();
+            System.out.println(boss.getNome() + " rolou: " + rolagemBoss);
+            
+            // Boss tem chance de ataque especial
+            if (Dado.rolar(10) >= 7) {
+                System.out.println(boss.getNome() + " usa ATAQUE SOMBRIO!");
+                int danoEspecial = boss.calcularDano(rolagemBoss) * 2;
+                jogador.receberDano(danoEspecial);
+                System.out.println("Você recebeu " + danoEspecial + " de dano devastador!");
+            } else {
+                int danoBoss = boss.calcularDano(rolagemBoss);
+                jogador.receberDano(danoBoss);
+                System.out.println("Você recebeu " + danoBoss + " de dano!");
+            }
+            
+            System.out.println(jogador.getStatus());
+            aguardarEnter();
+        }
+    }
+
+    private void vitoriaBoss(Inimigo boss) {
+        bossDerrotado = true;
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("VITÓRIA ÉPICA!");
+        System.out.println("=".repeat(50));
+        System.out.println("Você derrotou o " + boss.getNome() + "!");
+        System.out.println("O castelo começa a desmoronar...");
+        System.out.println("A escuridão se dissipa...");
+        
+        int xpGanho = boss.getRecompensaXP() * 3;
+        xpAtual += xpGanho;
+        System.out.println("\n" + xpGanho + " XP ganhos!");
+        
+        saquearInimigo(boss);
+        aguardarEnter();
+    }
+
+    private void finalVitorioso() {
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("FINAL - A LUZ RETORNA");
+        System.out.println("=".repeat(50));
+        System.out.println("Com o Vorath, o Eterno derrotado,");
+        System.out.println("a paz retorna às terras.");
+        System.out.println("Você é aclamado como herói!");
+        System.out.println("\nEstatísticas finais:");
+        System.out.println("Nível alcançado: " + jogador.getNivel());
+        System.out.println("XP total: " + xpAtual);
+        System.out.println("Explorações realizadas: " + exploracoesRealizadas);
+        System.out.println("\nParabéns, " + jogador.getNome() + "!");
+        System.out.println("=".repeat(50));
     }
 
     private void encontrarInimigo() {
@@ -167,11 +356,11 @@ public class Jogo {
             System.out.println("1. Atacar");
             System.out.println("2. Usar item");
             System.out.println("3. Tentar fugir");
+            System.out.println("4. Habilidade especial");
             
-            int acao = lerOpcao(1, 3);
+            int acao = lerOpcao(1, 4);
             
             if (acao == 1) {
-                // Jogador ataca
                 int rolagemJogador = Dado.rolarD6();
                 System.out.println("Você rolou: " + rolagemJogador);
                 
@@ -182,16 +371,19 @@ public class Jogo {
                 System.out.println(inimigo.getStatus());
                 
             } else if (acao == 2) {
-                usarItem();
-                continue; // Não conta como turno de ataque
-            } else {
-                // Tentar fugir
+                usarItem(inimigo);
+                continue;
+            } else if (acao == 3) {
                 if (tentarFugir()) {
                     System.out.println("Você fugiu com sucesso!");
                     return;
                 } else {
                     System.out.println("Não conseguiu fugir!");
                 }
+            } else if (acao == 4) {
+                String resultado = jogador.usarHabilidadeEspecial(inimigo);
+                System.out.println(resultado);
+                System.out.println(inimigo.getStatus());
             }
             
             if (!inimigo.estaVivo()) {
@@ -199,7 +391,6 @@ public class Jogo {
                 return;
             }
             
-            // Turno do inimigo
             System.out.println("\n--- Turno do inimigo ---");
             int rolagemInimigo = Dado.rolarD6();
             System.out.println(inimigo.getNome() + " rolou: " + rolagemInimigo);
@@ -216,7 +407,7 @@ public class Jogo {
 
     private boolean tentarFugir() {
         int rolagem = Dado.rolarD20();
-        return rolagem >= 12; // 45% de chance
+        return rolagem >= 12;
     }
 
     private void vitoria(Inimigo inimigo) {
@@ -225,19 +416,15 @@ public class Jogo {
         System.out.println("=".repeat(50));
         System.out.println("Você derrotou " + inimigo.getNome() + "!");
         
-        // Ganhar XP
         int xpGanho = inimigo.getRecompensaXP();
         xpAtual += xpGanho;
         System.out.println(xpGanho + " XP");
         
-        // Verificar level up
         if (xpAtual >= xpProximoNivel) {
             levelUp();
         }
         
-        // Saquear itens
         saquearInimigo(inimigo);
-        
         aguardarEnter();
     }
 
@@ -246,7 +433,6 @@ public class Jogo {
         xpAtual -= xpProximoNivel;
         xpProximoNivel = (int) (xpProximoNivel * 1.5);
         
-        // Aumentar atributos
         jogador.setPontosVidaMaximos(jogador.getPontosVidaMaximos() + 20);
         jogador.setPontosVida(jogador.getPontosVidaMaximos());
         jogador.setAtaque(jogador.getAtaque() + 3);
@@ -303,7 +489,7 @@ public class Jogo {
         System.out.println(jogador.getStatus());
     }
 
-    private void usarItem() {
+    private void usarItem(Inimigo alvoEmCombate) {
         if (jogador.getInventario().estaVazio()) {
             System.out.println("Seu inventário está vazio!");
             return;
@@ -325,30 +511,45 @@ public class Jogo {
             return;
         }
         
-        aplicarEfeitoItem(item);
-        jogador.getInventario().remover(item.getNome(), 1);
-        System.out.println(item.getNome() + " usado!");
+        boolean consumiu = aplicarEfeitoItem(item, alvoEmCombate);
+        if (consumiu) {
+            jogador.getInventario().remover(item.getNome(), 1);
+            System.out.println(item.getNome() + " usado!");
+        }
     }
-
-    private void aplicarEfeitoItem(Item item) {
+    private boolean aplicarEfeitoItem(Item item, Inimigo alvoEmCombate) {
         switch (item.getEfeito()) {
             case CURA:
                 jogador.curar(item.getValorEfeito());
                 System.out.println("Você recuperou " + item.getValorEfeito() + " HP!");
-                break;
+                return true;
+
             case BUFF_ATAQUE:
                 jogador.setAtaque(jogador.getAtaque() + item.getValorEfeito());
                 System.out.println("Seu ataque aumentou em " + item.getValorEfeito() + "!");
-                break;
+                return true;
+
             case BUFF_DEFESA:
                 jogador.setDefesa(jogador.getDefesa() + item.getValorEfeito());
                 System.out.println("Sua defesa aumentou em " + item.getValorEfeito() + "!");
-                break;
+                return true;
+
             case DANO:
-                System.out.println("Item de dano! Use em combate.");
-                break;
+                if (alvoEmCombate == null) {
+                    System.out.println("Este item só pode ser usado em combate!");
+                    return false;
+                }
+                int danoBase = item.getValorEfeito();
+                int variacao = Dado.rolarD6() - 3; // pequena variação (-2 a +3)
+                int danoTotal = Math.max(1, danoBase + variacao);
+                alvoEmCombate.receberDano(danoTotal);
+                System.out.println("Você usou " + item.getNome() + " e causou " + danoTotal + " de dano em " + alvoEmCombate.getNome() + "!");
+                System.out.println(alvoEmCombate.getStatus());
+                return true;
+
             default:
                 System.out.println("Efeito especial aplicado!");
+                return true;
         }
     }
 
@@ -360,12 +561,9 @@ public class Jogo {
         System.out.println("\n" + "=".repeat(50));
         System.out.println(jogador.getStatus());
         System.out.println("XP: " + xpAtual + "/" + xpProximoNivel);
+        System.out.println("Capítulo: " + capituloAtual);
+        System.out.println("Explorações: " + exploracoesRealizadas);
         System.out.println("=".repeat(50));
-    }
-
-    private void usarHabilidadeEspecial() {
-        String resultado = jogador.usarHabilidadeEspecial();
-        System.out.println("\n" + resultado);
     }
 
     private void criarSavePoint() {
@@ -413,6 +611,7 @@ public class Jogo {
         System.out.println("Você foi derrotado...");
         System.out.println("Nível alcançado: " + jogador.getNivel());
         System.out.println("XP total: " + xpAtual);
+        System.out.println("Capítulo alcançado: " + capituloAtual);
     }
 
     private int lerOpcao(int min, int max) {

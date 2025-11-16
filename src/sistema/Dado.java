@@ -21,7 +21,9 @@ public class Dado {
         if (faces <= 0) {
             throw new IllegalArgumentException("Número de faces deve ser positivo");
         }
-        return random.nextInt(faces) + 1;
+        int resultado = random.nextInt(faces) + 1;
+        System.out.println(String.format("[DADO] d%d -> %d", faces, resultado));
+        return resultado;
     }
 
     public static int rolarD6() {
