@@ -39,26 +39,12 @@ Entrar na pasta raiz do projeto (onde ficam as pastas src e bin)
 
 No terminal, dentro da pasta do projeto, execute:
 
-javac -encoding UTF-8 -d bin -sourcepath src src\sistema\Main.java
-
+*javac -encoding UTF-8 -d bin -sourcepath src src\sistema\Main.java*
 
 Isso irá gerar os arquivos .class dentro da pasta bin/, mantendo a estrutura de pacotes.
 
 2. Execute o jogo
-java -cp bin sistema.Main
-
-📂 Estrutura do Projeto
-.
-├── src/
-│   ├── sistema/
-│   │   └── Main.java
-│   ├── entidades/
-│   ├── classes/
-│   ├── itens/
-│   ├── combate/
-│   └── ...
-├── bin/           
-└── README.md
+*java -cp bin sistema.Main*
 
 🧠 Conceitos Aplicados
 
