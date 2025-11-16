@@ -1,5 +1,8 @@
 package itens;
 
+/**
+ * Enum que representa os tipos de efeito que um item pode ter.
+ */
 public enum Efeito {
     CURA("Restaura pontos de vida"),
     BUFF_ATAQUE("Aumenta o ataque temporariamente"),
@@ -13,6 +16,9 @@ public enum Efeito {
         this.descricao = descricao;
     }
 
+    /**
+     * @return descrição textual do efeito.
+     */
     public String getDescricao() {
         return descricao;
     }

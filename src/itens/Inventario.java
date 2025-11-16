@@ -3,16 +3,33 @@ package itens;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Representa o inventário de um personagem.
+ * <p>
+ * Armazena itens com múltiplas unidades, agrupando por (nome + efeito).
+ * Usa um {@link Map} interno para facilitar o merge de quantidades.
+ */
 public class Inventario {
     private Map<String, Item> itens;
     private int capacidadeMaxima;
 
+    /**
+     * @param capacidadeMaxima número máximo de tipos diferentes de item.
+     *                         Não é a soma das quantidades, e sim o número de "slots".
+     * @throws IllegalArgumentException se capacidadeMaxima &lt;= 0
+     */
     public Inventario(int capacidadeMaxima) {
+        if (capacidadeMaxima <= 0) {
+            throw new IllegalArgumentException("Capacidade máxima deve ser positiva");
+        }
         this.itens = new HashMap<>();
         this.capacidadeMaxima = capacidadeMaxima;
     }
 
-    // Construtor de cópia
+    /**
+     * Construtor de cópia.
+     * Cria cópias independentes dos itens.
+     */
     public Inventario(Inventario outro) {
         this.capacidadeMaxima = outro.capacidadeMaxima;
         this.itens = new HashMap<>();
@@ -21,6 +38,14 @@ public class Inventario {
         }
     }
 
+    /**
+     * Adiciona um item ao inventário. Se já existir um item com o mesmo
+     * nome e efeito, apenas incrementa a quantidade.
+     *
+     * @param item item a ser adicionado (não pode ser nulo)
+     * @throws IllegalArgumentException se item for nulo
+     * @throws IllegalStateException    se o inventário estiver cheio para novos tipos
+     */
     public void adicionar(Item item) {
         if (item == null) {
             throw new IllegalArgumentException("Item não pode ser nulo");
@@ -39,6 +64,15 @@ public class Inventario {
         }
     }
 
+    /**
+     * Remove certa quantidade de um item pelo nome.
+     *
+     * @param nome       nome lógico do item
+     * @param quantidade quantidade a remover (&gt; 0)
+     * @return true se conseguiu remover; false se não havia quantidade suficiente
+     *         ou o item não existia.
+     * @throws IllegalArgumentException se quantidade &lt;= 0
+     */
     public boolean remover(String nome, int quantidade) {
         if (quantidade <= 0) {
             throw new IllegalArgumentException("Quantidade deve ser positiva");
@@ -62,6 +96,12 @@ public class Inventario {
         return true;
     }
 
+    /**
+     * Busca item por nome (ignorando maiúsculas/minúsculas).
+     *
+     * @param nome nome do item
+     * @return referência ao item interno (não uma cópia) ou null se não encontrado
+     */
     public Item buscarPorNome(String nome) {
         if (nome == null || nome.trim().isEmpty()) {
             return null;
@@ -78,6 +118,12 @@ public class Inventario {
         return null;
     }
     
+    /**
+     * Retorna o item pelo índice na lista ordenada.
+     *
+     * @param indice posição na lista ordenada (0-based)
+     * @return referência ao item interno ou null se índice for inválido
+     */
     public Item buscarPorIndice(int indice) {
         List<Item> itensOrdenados = listarOrdenado();
         if (indice < 0 || indice >= itensOrdenados.size()) {
@@ -85,23 +131,36 @@ public class Inventario {
         }
         
         Item itemCopia = itensOrdenados.get(indice);
-        // Retorna o item original do HashMap, não a cópia
         return buscarPorNome(itemCopia.getNome());
     }
 
+    /**
+     * Retorna uma lista de cópias dos itens,
+     * ordenada pelo {@link Item#compareTo(Item)}.
+     */
     public List<Item> listarOrdenado() {
         return itens.values().stream()
-                .map(Item::new)
-                .sorted()
-                .collect(Collectors.toList());
+            .map(Item::new)
+            .sorted()
+            .collect(Collectors.toList());
     }
 
     public boolean estaVazio() {
         return itens.isEmpty();
     }
 
+    /**
+     * @return quantidade de tipos de item (slots ocupados)
+     */
     public int getTamanho() {
         return itens.size();
+    }
+
+    /**
+     * Remove todos os itens do inventário.
+     */
+    public void limpar() {
+        itens.clear();
     }
 
     private String gerarChave(Item item) {

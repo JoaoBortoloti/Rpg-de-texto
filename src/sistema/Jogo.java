@@ -5,20 +5,33 @@ import itens.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.FileReader;
+import java.io.PrintWriter;
 import java.util.List;
+import java.util.ArrayList;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Classe principal de controle do RPG de texto.
+ * <p>
+ * Gerencia o loop principal do jogo, menus, exploração, combate,
+ * save/load e progresso da história.
+ */
 public class Jogo {
     private Personagem jogador;
     private BufferedReader reader;
     private int xpAtual;
     private int xpProximoNivel;
     private boolean jogoAtivo;
-    private Personagem savePoint;
     private int exploracoesRealizadas;
     private int capituloAtual;
     private boolean bossDerrotado;
 
+    /**
+     * Cria uma instância de jogo pronta para ser iniciada via {@link #iniciar()}.
+     */
     public Jogo() {
         this.reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
         this.xpAtual = 0;
@@ -29,17 +42,54 @@ public class Jogo {
         this.bossDerrotado = false;
     }
 
+    /**
+     * Inicia o jogo, exibindo a tela inicial e o loop principal.
+     */
     public void iniciar() {
         exibirBanner();
-        criarPersonagem();
-        introducao();
+        telaInicial();
+        if (jogador == null) {
+            System.out.println("Encerrando jogo.");
+            return;
+        }
+        introducaoSeForNovoJogo();
         loopPrincipal();
     }
 
+    private void telaInicial() {
+        boolean escolhendo = true;
+
+        while (escolhendo) {
+            System.out.println("1. Novo jogo");
+            System.out.println("2. Carregar jogo");
+            System.out.println("0. Sair");
+            System.out.print("Escolha: ");
+
+            int opcao = lerOpcao(0, 2);
+
+            switch (opcao) {
+                case 1:
+                    criarPersonagem();
+                    escolhendo = false;
+                    break;
+                case 2:
+                    boolean carregou = carregarJogo(true);
+                    if (carregou) {
+                        escolhendo = false;
+                    }
+                    break;
+                case 0:
+                    jogoAtivo = false;
+                    escolhendo = false;
+                    break;
+            }
+        }
+    }
+
     private void exibirBanner() {
-        System.out.println("╔════════════════════════════════════════╗");
-        System.out.println("║     RPG DE TEXTO - AVENTURA POO       ║");
-        System.out.println("╚════════════════════════════════════════╝");
+        System.out.println("╔═══════════════════════════════════╗");
+        System.out.println("║    RPG DE TEXTO - AVENTURA POO    ║");
+        System.out.println("╚═══════════════════════════════════╝");
         System.out.println();
     }
 
@@ -66,12 +116,17 @@ public class Jogo {
                 break;
         }
         
-        // Adiciona itens iniciais
         jogador.getInventario().adicionar(new Item("Poção de Vida", "Restaura 30 HP", Efeito.CURA, 3, 30));
         jogador.getInventario().adicionar(new Item("Poção de Força", "Aumenta ataque em 5", Efeito.BUFF_ATAQUE, 1, 5));
         
         System.out.println("\nPersonagem criado com sucesso!");
         System.out.println(jogador.getStatus());
+    }
+
+    private void introducaoSeForNovoJogo() {
+        if (capituloAtual <= 1 && exploracoesRealizadas == 0 && !bossDerrotado) {
+            introducao();
+        }
     }
 
     private void introducao() {
@@ -90,7 +145,7 @@ public class Jogo {
     private void loopPrincipal() {
         while (jogoAtivo && jogador.estaVivo() && !bossDerrotado) {
             exibirMenu();
-            int opcao = lerOpcao(1, 7);
+            int opcao = lerOpcao(1, 6);
             
             switch (opcao) {
                 case 1:
@@ -106,12 +161,9 @@ public class Jogo {
                     verStatus();
                     break;
                 case 5:
-                    criarSavePoint();
+                    salvarJogo();
                     break;
                 case 6:
-                    restaurarSavePoint();
-                    break;
-                case 7:
                     sair();
                     break;
             }
@@ -132,19 +184,15 @@ public class Jogo {
         System.out.println("2. Usar item");
         System.out.println("3. Ver inventário");
         System.out.println("4. Ver status");
-        System.out.println("5. Criar save point");
-        System.out.println("6. Restaurar save point");
-        System.out.println("7. Sair do jogo");
+        System.out.println("5. Salvar jogo");
+        System.out.println("6. Sair do jogo");
         System.out.print("Escolha: ");
     }
 
     private void explorar() {
         System.out.println("\nExplorando...");
-        System.out.println("[DEBUG] Explorações realizadas: " + exploracoesRealizadas);
-        System.out.println("\nExplorando...");
         exploracoesRealizadas++;
         
-        // Verifica progressão da história
         if (exploracoesRealizadas % 2 == 0) {
             avancarHistoria();
             return;
@@ -177,7 +225,7 @@ public class Jogo {
                 System.out.println("Nas paredes, escritos em sangue: 'Ele vem à noite'.");
                 System.out.println("Você sente que está se aproximando do castelo...");
                 break;
-                
+            
             case 3:
                 System.out.println("CAPÍTULO 3: O CEMITÉRIO AMALDIÇOADO");
                 System.out.println("=".repeat(50));
@@ -186,7 +234,7 @@ public class Jogo {
                 System.out.println("Uma energia sombria emana do solo.");
                 System.out.println("O castelo está cada vez mais próximo...");
                 break;
-                
+            
             case 4:
                 System.out.println("CAPÍTULO 4: A PONTE QUEBRADA");
                 System.out.println("=".repeat(50));
@@ -195,7 +243,7 @@ public class Jogo {
                 System.out.println("Criaturas guardam a passagem.");
                 System.out.println("Você está quase lá...");
                 break;
-                
+            
             case 5:
                 System.out.println("CAPÍTULO 5: OS PORTÕES DO CASTELO");
                 System.out.println("=".repeat(50));
@@ -204,7 +252,7 @@ public class Jogo {
                 System.out.println("Uma voz ecoa: 'Bem-vindo, aventureiro...'");
                 System.out.println("Prepare-se para o confronto final!");
                 break;
-                
+            
             default:
                 if (capituloAtual >= 6) {
                     iniciarBossFight();
@@ -227,7 +275,6 @@ public class Jogo {
         System.out.println("=".repeat(50));
         aguardarEnter();
         
-        // Cria o boss com stats aumentados
         Inimigo boss = new Inimigo(
             "Vorath, o Eterno",
             200 + (jogador.getNivel() * 20),
@@ -237,7 +284,6 @@ public class Jogo {
             "Boss Final" 
         );
         
-        // Adiciona itens raros ao boss
         boss.getInventario().adicionar(new Item("Elixir Lendário", "Restaura 100 HP", Efeito.CURA, 2, 100));
         boss.getInventario().adicionar(new Item("Essência das Trevas", "Aumenta ataque em 10", Efeito.BUFF_ATAQUE, 1, 10));
         
@@ -284,12 +330,10 @@ public class Jogo {
                 return;
             }
             
-            // Turno do boss (ataque mais forte)
             System.out.println("\n--- Turno do " + boss.getNome() + " ---");
             int rolagemBoss = Dado.rolarD6();
             System.out.println(boss.getNome() + " rolou: " + rolagemBoss);
             
-            // Boss tem chance de ataque especial
             if (Dado.rolar(10) >= 7) {
                 System.out.println(boss.getNome() + " usa ATAQUE SOMBRIO!");
                 int danoEspecial = boss.calcularDano(rolagemBoss) * 2;
@@ -443,6 +487,10 @@ public class Jogo {
         System.out.println("Ataque e defesa aumentados!");
     }
 
+    /**
+     * Transfere os itens do inimigo para o inventário do jogador.
+     * Se o inventário estiver cheio, imprime uma mensagem e ignora o item.
+     */
     private void saquearInimigo(Inimigo inimigo) {
         List<Item> itensInimigo = inimigo.getInventario().listarOrdenado();
         
@@ -454,7 +502,11 @@ public class Jogo {
         System.out.println("\nItens encontrados:");
         for (Item item : itensInimigo) {
             System.out.println("  - " + item.getNome() + " (x" + item.getQuantidade() + ")");
-            jogador.getInventario().adicionar(item);
+            try {
+                jogador.getInventario().adicionar(item);
+            } catch (IllegalStateException e) {
+                System.out.println("Inventário cheio! Você não pode carregar: " + item.getNome());
+            }
         }
     }
 
@@ -517,6 +569,7 @@ public class Jogo {
             System.out.println(item.getNome() + " usado!");
         }
     }
+
     private boolean aplicarEfeitoItem(Item item, Inimigo alvoEmCombate) {
         switch (item.getEfeito()) {
             case CURA:
@@ -540,7 +593,7 @@ public class Jogo {
                     return false;
                 }
                 int danoBase = item.getValorEfeito();
-                int variacao = Dado.rolarD6() - 3; // pequena variação (-2 a +3)
+                int variacao = Dado.rolarD6() - 3;
                 int danoTotal = Math.max(1, danoBase + variacao);
                 alvoEmCombate.receberDano(danoTotal);
                 System.out.println("Você usou " + item.getNome() + " e causou " + danoTotal + " de dano em " + alvoEmCombate.getNome() + "!");
@@ -566,33 +619,197 @@ public class Jogo {
         System.out.println("=".repeat(50));
     }
 
-    private void criarSavePoint() {
-        if (jogador instanceof Guerreiro) {
-            savePoint = new Guerreiro((Guerreiro) jogador);
-        } else if (jogador instanceof Mago) {
-            savePoint = new Mago((Mago) jogador);
-        } else if (jogador instanceof Arqueiro) {
-            savePoint = new Arqueiro((Arqueiro) jogador);
-        }
-        
-        System.out.println("Save point criado! Você pode restaurar este estado mais tarde.");
-    }
-    
-    private void restaurarSavePoint() {
-        if (savePoint == null) {
-            System.out.println("Nenhum save point disponível!");
+    private void salvarJogo() {
+        if (jogador == null) {
+            System.out.println("Não há jogo em andamento para salvar.");
             return;
         }
 
-        if (savePoint instanceof Guerreiro) {
-            jogador = new Guerreiro((Guerreiro) savePoint);
-        } else if (savePoint instanceof Mago) {
-            jogador = new Mago((Mago) savePoint);
-        } else if (savePoint instanceof Arqueiro) {
-            jogador = new Arqueiro((Arqueiro) savePoint);
+        System.out.print("Digite o nome do save: ");
+        String nomeSave = lerLinha();
+        if (nomeSave == null || nomeSave.trim().isEmpty()) {
+            System.out.println("Nome de save inválido!");
+            return;
         }
 
-        System.out.println("Save point restaurado! Seu progresso foi revertido para o estado salvo.");
+        nomeSave = nomeSave.trim();
+
+        try {
+            File pastaSaves = new File("src/saves");
+            if (!pastaSaves.exists()) {
+                pastaSaves.mkdirs();
+            }
+
+            File arquivoSave = new File(pastaSaves, nomeSave + ".txt");
+            try (PrintWriter pw = new PrintWriter(new FileWriter(arquivoSave))) {
+                pw.println("CLASSE=" + jogador.getClass().getSimpleName());
+                pw.println("NOME=" + jogador.getNome());
+                pw.println("NIVEL=" + jogador.getNivel());
+                pw.println("HP_ATUAL=" + jogador.getPontosVida());
+                pw.println("HP_MAX=" + jogador.getPontosVidaMaximos());
+                pw.println("ATAQUE=" + jogador.getAtaque());
+                pw.println("DEFESA=" + jogador.getDefesa());
+                pw.println("XP_ATUAL=" + xpAtual);
+                pw.println("XP_PROX=" + xpProximoNivel);
+                pw.println("CAPITULO=" + capituloAtual);
+                pw.println("EXPLORACOES=" + exploracoesRealizadas);
+                pw.println("BOSS_DERROTADO=" + bossDerrotado);
+
+                pw.println("ITENS_INICIO");
+                for (Item item : jogador.getInventario().listarOrdenado()) {
+                    pw.println(
+                        item.getNome() + ";" +
+                        item.getDescricao() + ";" +
+                        item.getEfeito().name() + ";" +
+                        item.getQuantidade() + ";" +
+                        item.getValorEfeito()
+                    );
+                }
+                pw.println("ITENS_FIM");
+            }
+
+            System.out.println("Jogo salvo em: " + arquivoSave.getPath());
+        } catch (Exception e) {
+            System.out.println("Erro ao salvar jogo: " + e.getMessage());
+        }
+    }
+
+    private boolean carregarJogo(boolean fromTelaInicial) {
+        File pastaSaves = new File("src/saves");
+        if (!pastaSaves.exists() || !pastaSaves.isDirectory()) {
+            System.out.println("Nenhum save encontrado (pasta src/saves não existe).");
+            return false;
+        }
+
+        File[] arquivos = pastaSaves.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
+        if (arquivos == null || arquivos.length == 0) {
+            System.out.println("Nenhum arquivo de save encontrado em src/saves.");
+            return false;
+        }
+
+        System.out.println("\n=== Saves disponíveis ===");
+        List<File> listaSaves = new ArrayList<>();
+        for (File f : arquivos) {
+            listaSaves.add(f);
+        }
+        listaSaves.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+
+        for (int i = 0; i < listaSaves.size(); i++) {
+            String nome = listaSaves.get(i).getName();
+            if (nome.toLowerCase().endsWith(".txt")) {
+                nome = nome.substring(0, nome.length() - 4);
+            }
+            System.out.printf("%d. %s%n", i + 1, nome);
+        }
+        System.out.println("0. Cancelar");
+        System.out.print("Escolha o save: ");
+
+        int escolha = lerOpcao(0, listaSaves.size());
+        if (escolha == 0) {
+            System.out.println("Carregamento cancelado.");
+            return false;
+        }
+
+        File arquivoSave = listaSaves.get(escolha - 1);
+
+        try (BufferedReader br = new BufferedReader(new FileReader(arquivoSave))) {
+            String linha;
+            String classe = null;
+            String nome = null;
+            int nivel = 1;
+            int hpAtual = 0;
+            int hpMax = 0;
+            int ataque = 0;
+            int defesa = 0;
+            int xpAtualLido = 0;
+            int xpProxLido = 100;
+            int capituloLido = 1;
+            int exploracoesLidas = 0;
+            boolean bossDerrotadoLido = false;
+
+            List<Item> itensLidos = new ArrayList<>();
+            boolean lendoItens = false;
+
+            while ((linha = br.readLine()) != null) {
+                if ("ITENS_INICIO".equals(linha)) {
+                    lendoItens = true;
+                    continue;
+                }
+                if ("ITENS_FIM".equals(linha)) {
+                    lendoItens = false;
+                    continue;
+                }
+
+                if (lendoItens) {
+                    String[] partes = linha.split(";");
+                    if (partes.length == 5) {
+                        String nItem = partes[0];
+                        String desc = partes[1];
+                        Efeito efeito = Efeito.valueOf(partes[2]);
+                        int qtd = Integer.parseInt(partes[3]);
+                        int val = Integer.parseInt(partes[4]);
+                        itensLidos.add(new Item(nItem, desc, efeito, qtd, val));
+                    }
+                } else {
+                    String[] partes = linha.split("=", 2);
+                    if (partes.length != 2) continue;
+                    String chave = partes[0];
+                    String valor = partes[1];
+
+                    switch (chave) {
+                        case "CLASSE": classe = valor; break;
+                        case "NOME": nome = valor; break;
+                        case "NIVEL": nivel = Integer.parseInt(valor); break;
+                        case "HP_ATUAL": hpAtual = Integer.parseInt(valor); break;
+                        case "HP_MAX": hpMax = Integer.parseInt(valor); break;
+                        case "ATAQUE": ataque = Integer.parseInt(valor); break;
+                        case "DEFESA": defesa = Integer.parseInt(valor); break;
+                        case "XP_ATUAL": xpAtualLido = Integer.parseInt(valor); break;
+                        case "XP_PROX": xpProxLido = Integer.parseInt(valor); break;
+                        case "CAPITULO": capituloLido = Integer.parseInt(valor); break;
+                        case "EXPLORACOES": exploracoesLidas = Integer.parseInt(valor); break;
+                        case "BOSS_DERROTADO": bossDerrotadoLido = Boolean.parseBoolean(valor); break;
+                    }
+                }
+            }
+
+            if ("Guerreiro".equals(classe)) {
+                jogador = new Guerreiro(nome, hpMax, ataque, defesa, nivel);
+            } else if ("Mago".equals(classe)) {
+                jogador = new Mago(nome, hpMax, ataque, defesa, nivel);
+            } else if ("Arqueiro".equals(classe)) {
+                jogador = new Arqueiro(nome, hpMax, ataque, defesa, nivel);
+            } else {
+                System.out.println("Classe inválida no save!");
+                return false;
+            }
+
+            jogador.setPontosVidaMaximos(hpMax);
+            jogador.setPontosVida(hpAtual);
+            jogador.setAtaque(ataque);
+            jogador.setDefesa(defesa);
+            jogador.setNivel(nivel);
+
+            jogador.getInventario().limpar();
+            for (Item item : itensLidos) {
+                jogador.getInventario().adicionar(item);
+            }
+
+            this.xpAtual = xpAtualLido;
+            this.xpProximoNivel = xpProxLido;
+            this.capituloAtual = capituloLido;
+            this.exploracoesRealizadas = exploracoesLidas;
+            this.bossDerrotado = bossDerrotadoLido;
+
+            System.out.println("\nSave carregado com sucesso!");
+            System.out.println(jogador.getStatus());
+            System.out.println("Capítulo: " + capituloAtual + " | Explorações: " + exploracoesRealizadas);
+
+            return true;
+        } catch (Exception e) {
+            System.out.println("Erro ao carregar jogo: " + e.getMessage());
+            return false;
+        }
     }
 
     private void sair() {
@@ -631,7 +848,11 @@ public class Jogo {
 
     private String lerLinha() {
         try {
-            return reader.readLine().trim();
+            String linha = reader.readLine();
+            if (linha == null) {
+                return "";
+            }
+            return linha.trim();
         } catch (IOException e) {
             return "";
         }
@@ -642,7 +863,6 @@ public class Jogo {
         try {
             reader.readLine();
         } catch (IOException e) {
-            // Ignora
         }
     }
 }

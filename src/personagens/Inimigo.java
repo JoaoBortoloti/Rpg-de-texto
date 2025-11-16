@@ -4,10 +4,19 @@ import itens.Item;
 import itens.Efeito;
 import sistema.Dado;
 
+/**
+ * Classe concreta que representa um inimigo no jogo.
+ * <p>
+ * É derivado de {@link Personagem} e possui recompensa de XP,
+ * tipo (ex.: comum, chefe) e geração de loot.
+ */
 public class Inimigo extends Personagem {
     private int recompensaXP;
     private String tipo;
 
+    /**
+     * Cria um inimigo com atributos personalizados.
+     */
     public Inimigo(String nome, int pontosVida, int ataque, int defesa, int nivel, String tipo) {
         super(nome, pontosVida, ataque, defesa, nivel);
         this.tipo = tipo;
@@ -15,18 +24,26 @@ public class Inimigo extends Personagem {
         gerarLoot();
     }
 
+    /**
+     * Construtor padrão: inimigo do tipo Goblin de nível 1.
+     */
     public Inimigo() {
         this("Goblin", 50, 8, 3, 1, "Comum");
     }
 
+    /**
+     * Construtor de cópia.
+     */
     public Inimigo(Inimigo outro) {
         super(outro);
         this.recompensaXP = outro.recompensaXP;
         this.tipo = outro.tipo;
     }
 
+    /**
+     * Gera itens aleatórios no inventário do inimigo.
+     */
     private void gerarLoot() {
-        // Adiciona itens aleatórios ao inventário do inimigo
         int numeroItens = Dado.rolar(3);
         
         for (int i = 0; i < numeroItens; i++) {
@@ -67,6 +84,12 @@ public class Inimigo extends Personagem {
         return tipo;
     }
 
+    /**
+     * Cria um inimigo aleatório com base no nível do jogador.
+     *
+     * @param nivelJogador nível atual do jogador
+     * @return instância de {@link Inimigo} adequada ao nível
+     */
     public static Inimigo criarInimigoAleatorio(int nivelJogador) {
         int nivel = Math.max(1, nivelJogador + Dado.rolar(3) - 2);
         int tipoInimigo = Dado.rolar(5);

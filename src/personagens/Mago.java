@@ -1,10 +1,18 @@
 package personagens;
 
+/**
+ * Classe concreta de personagem do tipo Mago.
+ * <p>
+ * Usa mana para potencializar seus ataques e lançar habilidades mágicas.
+ */
 public class Mago extends Personagem {
     private int mana;
     private int manaMaxima;
     private int poderMagico;
 
+    /**
+     * Cria um Mago com atributos personalizados.
+     */
     public Mago(String nome, int pontosVida, int ataque, int defesa, int nivel) {
         super(nome, pontosVida, ataque, defesa, nivel);
         this.manaMaxima = 50 + (nivel * 10);
@@ -12,10 +20,16 @@ public class Mago extends Personagem {
         this.poderMagico = 20;
     }
 
+    /**
+     * Construtor padrão com valores iniciais predefinidos.
+     */
     public Mago() {
         this("Mago", 80, 10, 5, 1);
     }
 
+    /**
+     * Construtor de cópia.
+     */
     public Mago(Mago outro) {
         super(outro);
         this.mana = outro.mana;
@@ -23,11 +37,16 @@ public class Mago extends Personagem {
         this.poderMagico = outro.poderMagico;
     }
 
+    /**
+     * Calcula o dano do Mago.
+     * <p>
+     * Se houver mana suficiente, o Mago gasta 10 de mana e adiciona
+     * {@code poderMagico} ao dano base.
+     */
     @Override
     public int calcularDano(int rolagemDado) {
         int danoBase = super.calcularDano(rolagemDado);
         
-        // Mago pode usar mana para aumentar dano
         if (mana >= 10) {
             danoBase += poderMagico;
             mana -= 10;
@@ -37,6 +56,11 @@ public class Mago extends Personagem {
         return danoBase;
     }
 
+    /**
+     * Habilidade especial: Bola de Fogo.
+     * <p>
+     * Custa 30 de mana e causa dano adicional diretamente ao alvo.
+     */
     @Override
     public String usarHabilidadeEspecial(Personagem alvo) {
         if (mana >= 30) {
@@ -50,6 +74,9 @@ public class Mago extends Personagem {
         }
     }
 
+    /**
+     * Regenera mana até o máximo.
+     */
     public void regenerarMana(int quantidade) {
         mana = Math.min(mana + quantidade, manaMaxima);
     }

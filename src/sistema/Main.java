@@ -1,5 +1,8 @@
 package sistema;
 
+/**
+ * Classe de entrada da aplicação.
+ */
 public class Main {
     public static void main(String[] args) {
         // Opcional: definir seed para testes determinísticos

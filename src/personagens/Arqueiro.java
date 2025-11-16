@@ -2,26 +2,47 @@ package personagens;
 
 import sistema.Dado;
 
+/**
+ * Classe concreta de personagem do tipo Arqueiro.
+ * <p>
+ * Utiliza flechas e possui alta precisão para causar dano à distância.
+ */
 public class Arqueiro extends Personagem {
     private int flechas;
     private int precisao;
 
+    /**
+     * Cria um Arqueiro com atributos personalizados.
+     */
     public Arqueiro(String nome, int pontosVida, int ataque, int defesa, int nivel) {
         super(nome, pontosVida, ataque, defesa, nivel);
         this.flechas = 30;
         this.precisao = 75;
     }
 
+    /**
+     * Construtor padrão com valores iniciais predefinidos.
+     */
     public Arqueiro() {
         this("Arqueiro", 100, 12, 7, 1);
     }
 
+    /**
+     * Construtor de cópia.
+     */
     public Arqueiro(Arqueiro outro) {
         super(outro);
         this.flechas = outro.flechas;
         this.precisao = outro.precisao;
     }
 
+    /**
+     * Calcula o dano do Arqueiro.
+     * <ul>
+     *   <li>Se não houver flechas, ataca corpo a corpo com dano reduzido.</li>
+     *   <li>Se houver flechas, consome 1 e pode aplicar bônus de "tiro preciso".</li>
+     * </ul>
+     */
     @Override
     public int calcularDano(int rolagemDado) {
         if (flechas <= 0) {
@@ -40,6 +61,11 @@ public class Arqueiro extends Personagem {
         return danoBase;
     }
 
+    /**
+     * Habilidade especial: Rajada de Flechas.
+     * <p>
+     * Consome 3 flechas e realiza três ataques baseados em rolagens de d6.
+     */
     @Override
     public String usarHabilidadeEspecial(Personagem alvo) {
         if (flechas >= 3) {
@@ -55,6 +81,9 @@ public class Arqueiro extends Personagem {
         }
     }
 
+    /**
+     * Recarrega o estoque de flechas.
+     */
     public void recarregarFlechas(int quantidade) {
         flechas += quantidade;
     }
