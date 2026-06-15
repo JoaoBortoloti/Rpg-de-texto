@@ -35,7 +35,7 @@ public class Jogo {
     public Jogo() {
         this.reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
         this.xpAtual = 0;
-        this.xpProximoNivel = 100;
+        this.xpProximoNivel = GameConfig.XP_INICIAL_PROXIMO_NIVEL;
         this.jogoAtivo = true;
         this.exploracoesRealizadas = 0;
         this.capituloAtual = 1;
@@ -193,18 +193,18 @@ public class Jogo {
         System.out.println("\nExplorando...");
         exploracoesRealizadas++;
         
-        if (exploracoesRealizadas % 2 == 0) {
+        if (exploracoesRealizadas % GameConfig.CADENCIA_HISTORIA == 0) {
             avancarHistoria();
             return;
         }
-        
+
         int evento = Dado.rolar(10);
-        
-        if (evento <= 5) {
+
+        if (evento <= GameConfig.LIMIAR_INIMIGO) {
             encontrarInimigo();
-        } else if (evento <= 7) {
+        } else if (evento <= GameConfig.LIMIAR_ITEM) {
             encontrarItem();
-        } else if (evento == 8) {
+        } else if (evento == GameConfig.LIMIAR_ARMADILHA) {
             armadilha();
         } else {
             System.out.println("Você explorou a área mas não encontrou nada interessante.");
@@ -277,11 +277,11 @@ public class Jogo {
         
         Inimigo boss = new Inimigo(
             "Vorath, o Eterno",
-            200 + (jogador.getNivel() * 20),
-            20 + (jogador.getNivel() * 2),
-            15 + jogador.getNivel(),
-            jogador.getNivel() + 2,
-            "Boss Final" 
+            GameConfig.BOSS_HP_BASE     + (jogador.getNivel() * GameConfig.BOSS_HP_POR_NIVEL),
+            GameConfig.BOSS_ATAQUE_BASE + (jogador.getNivel() * GameConfig.BOSS_ATAQUE_POR_NIVEL),
+            GameConfig.BOSS_DEFESA_BASE + jogador.getNivel(),
+            jogador.getNivel()          + GameConfig.BOSS_NIVEL_BONUS,
+            "Boss Final"
         );
         
         boss.getInventario().adicionar(new Item("Elixir Lendário", "Restaura 100 HP", Efeito.CURA, 2, 100));
@@ -334,7 +334,7 @@ public class Jogo {
             int rolagemBoss = Dado.rolarD6();
             System.out.println(boss.getNome() + " rolou: " + rolagemBoss);
             
-            if (Dado.rolar(10) >= 7) {
+            if (Dado.rolar(10) >= GameConfig.BOSS_LIMIAR_ESPECIAL) {
                 System.out.println(boss.getNome() + " usa ATAQUE SOMBRIO!");
                 int danoEspecial = boss.calcularDano(rolagemBoss) * 2;
                 jogador.receberDano(danoEspecial);
@@ -359,7 +359,7 @@ public class Jogo {
         System.out.println("O castelo começa a desmoronar...");
         System.out.println("A escuridão se dissipa...");
         
-        int xpGanho = boss.getRecompensaXP() * 3;
+        int xpGanho = boss.getRecompensaXP() * GameConfig.XP_BOSS_MULTIPLICADOR;
         xpAtual += xpGanho;
         System.out.println("\n" + xpGanho + " XP ganhos!");
         
@@ -451,7 +451,7 @@ public class Jogo {
 
     private boolean tentarFugir() {
         int rolagem = Dado.rolarD20();
-        return rolagem >= 12;
+        return rolagem >= GameConfig.LIMIAR_FUGA;
     }
 
     private void vitoria(Inimigo inimigo) {
@@ -475,12 +475,12 @@ public class Jogo {
     private void levelUp() {
         jogador.setNivel(jogador.getNivel() + 1);
         xpAtual -= xpProximoNivel;
-        xpProximoNivel = (int) (xpProximoNivel * 1.5);
-        
-        jogador.setPontosVidaMaximos(jogador.getPontosVidaMaximos() + 20);
+        xpProximoNivel = (int) (xpProximoNivel * GameConfig.MULTIPLICADOR_XP_NIVEL);
+
+        jogador.setPontosVidaMaximos(jogador.getPontosVidaMaximos() + GameConfig.BONUS_HP_LEVEL_UP);
         jogador.setPontosVida(jogador.getPontosVidaMaximos());
-        jogador.setAtaque(jogador.getAtaque() + 3);
-        jogador.setDefesa(jogador.getDefesa() + 2);
+        jogador.setAtaque(jogador.getAtaque() + GameConfig.BONUS_ATAQUE_LEVEL_UP);
+        jogador.setDefesa(jogador.getDefesa() + GameConfig.BONUS_DEFESA_LEVEL_UP);
         
         System.out.println("\nLEVEL UP! Agora você é nível " + jogador.getNivel());
         System.out.println("HP máximo aumentado!");
@@ -535,7 +535,7 @@ public class Jogo {
 
     private void armadilha() {
         System.out.println("Você caiu em uma armadilha!");
-        int dano = Dado.rolar(15);
+        int dano = Dado.rolar(GameConfig.FACES_DADO_ARMADILHA);
         jogador.receberDano(dano);
         System.out.println("Você recebeu " + dano + " de dano!");
         System.out.println(jogador.getStatus());
