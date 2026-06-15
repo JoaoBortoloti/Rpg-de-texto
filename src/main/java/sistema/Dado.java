@@ -5,13 +5,13 @@ import java.util.Random;
 /**
  * Utilitário de rolagem de dados.
  * <p>
- * Possui suporte a seed para permitir testes determinísticos.
- * Sempre imprime o resultado da rolagem para que o jogador
- * veja o valor tirado, como em um RPG de mesa.
+ * Suporta seed para testes determinísticos e modo silencioso
+ * para suprimir saída durante execução de testes automatizados.
  */
 public class Dado {
     private static Random random = new Random();
     private static Long seed = null;
+    private static boolean silencioso = false;
 
     /**
      * Define a seed do gerador de números aleatórios.
@@ -33,6 +33,14 @@ public class Dado {
     }
 
     /**
+     * Ativa ou desativa o modo silencioso (sem println).
+     * Útil em testes para evitar poluição da saída padrão.
+     */
+    public static void setSilencioso(boolean valor) {
+        silencioso = valor;
+    }
+
+    /**
      * Rola um dado com o número de faces indicado.
      *
      * @param faces número de faces (deve ser &gt; 0)
@@ -44,7 +52,9 @@ public class Dado {
             throw new IllegalArgumentException("Número de faces deve ser positivo");
         }
         int resultado = random.nextInt(faces) + 1;
-        System.out.println(String.format("[DADO] d%d -> %d", faces, resultado));
+        if (!silencioso) {
+            System.out.printf("[DADO] d%d -> %d%n", faces, resultado);
+        }
         return resultado;
     }
 
