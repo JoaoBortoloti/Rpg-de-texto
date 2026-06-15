@@ -98,6 +98,19 @@ class MagoTest {
     }
 
     @Test
+    void poderMagicoEscalaComNivel() {
+        Mago nivel1 = new Mago("M", 80, 10, 5, 1);
+        Mago nivel5 = new Mago("M", 80, 10, 5, 5);
+
+        int rolagemFixa = 1;
+        // sem mana ainda consumida, dano nivel5 deve ser maior que nivel1
+        int danoNivel1 = nivel1.calcularDano(rolagemFixa);
+        int danoNivel5 = nivel5.calcularDano(rolagemFixa);
+        assertTrue(danoNivel5 > danoNivel1,
+                "Mago de nível 5 deve causar mais dano que nível 1 (poderMagico escala)");
+    }
+
+    @Test
     void construtorDeCopiaPreservaMana() {
         mago.calcularDano(1);
         int manaEsperada = mago.getMana();

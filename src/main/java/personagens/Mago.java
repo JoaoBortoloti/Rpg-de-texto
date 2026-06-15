@@ -15,9 +15,9 @@ public class Mago extends Personagem {
      */
     public Mago(String nome, int pontosVida, int ataque, int defesa, int nivel) {
         super(nome, pontosVida, ataque, defesa, nivel);
-        this.manaMaxima = 50 + (nivel * 10);
-        this.mana = manaMaxima;
-        this.poderMagico = 20;
+        this.manaMaxima  = 50 + (nivel * 10);
+        this.mana        = manaMaxima;
+        this.poderMagico = 10 + (nivel * 5);
     }
 
     /**
