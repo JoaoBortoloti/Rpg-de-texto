@@ -1,50 +1,50 @@
-# RPG de Texto – Projeto POO em Java
+# Text RPG – Java OOP Showcase
 
-## Sobre o Projeto
+## About
 
-RPG de texto em Java desenvolvido para demonstrar, na prática, os principais pilares da Programação Orientada a Objetos. O projeto cobre abstração, encapsulamento, herança, polimorfismo, composição, interfaces, enums, `Comparable` e construtores de cópia.
+A text-based RPG built in Java to demonstrate core Object-Oriented Programming principles in practice. The project covers abstraction, encapsulation, inheritance, polymorphism, composition, interfaces, enums, `Comparable`, and copy constructors.
 
-## Pré-requisitos
+## Requirements
 
 - Java 17+
 - Maven 3.8+
 
-## Build e Execução
+## Build & Run
 
 ```bash
-# Compilar
+# Compile
 mvn compile
 
-# Rodar o jogo
+# Run the game
 mvn exec:java -Dexec.mainClass="sistema.Main"
 
-# Rodar os testes
+# Run tests
 mvn test
 ```
 
-## Estrutura do Projeto
+## Project Structure
 
 ```
 src/
 ├── main/java/
-│   ├── interfaces/   Atacavel — contrato de combate
+│   ├── interfaces/   Atacavel — combat contract
 │   ├── itens/        Item, Inventario, Efeito
 │   ├── personagens/  Personagem (abstract), Guerreiro, Mago, Arqueiro, Inimigo
-│   └── sistema/      Dado, Jogo, Main
-└── test/java/        Suites de testes unitários por pacote
+│   └── sistema/      Dado, GameConfig, CombateService, ExploracaoService, SaveSystem, Jogo, Main
+└── test/java/        Unit test suites mirroring the main package structure
 ```
 
-## Conceitos Aplicados
+## OOP Concepts Applied
 
-| Conceito | Onde |
+| Concept | Where |
 |---|---|
-| Abstração | `Personagem` força subclasses a implementar `usarHabilidadeEspecial()` |
-| Encapsulamento | Atributos privados com getters/setters validados |
-| Herança | `Guerreiro`, `Mago`, `Arqueiro`, `Inimigo` estendem `Personagem` |
-| Polimorfismo | `calcularDano()` tem comportamento distinto em cada subclasse |
-| Composição | `Personagem` contém `Inventario` que contém `Item` |
-| Interface | `Atacavel` define o contrato `calcularDano`, `receberDano`, `estaVivo` |
-| Enum | `Efeito` tipifica os efeitos possíveis de um item |
-| Comparable | `Item` implementa `compareTo` para ordenação natural |
-| Construtor de cópia | `Personagem`, `Item` e `Inventario` suportam cópia profunda |
-| Factory Method | `Inimigo.criarInimigoAleatorio()` escala com o nível do jogador |
+| Abstraction | `Personagem` forces subclasses to implement `usarHabilidadeEspecial()` |
+| Encapsulation | Private fields with validated getters/setters |
+| Inheritance | `Guerreiro`, `Mago`, `Arqueiro`, `Inimigo` extend `Personagem` |
+| Polymorphism | `calcularDano()` behaves differently in each subclass |
+| Composition | `Personagem` owns an `Inventario` which owns `Item` objects |
+| Interface | `Atacavel` defines the combat contract (`calcularDano`, `receberDano`, `estaVivo`) |
+| Enum | `Efeito` types the possible effects an item can carry |
+| Comparable | `Item` implements `compareTo` for natural ordering by name and effect |
+| Copy constructor | `Personagem`, `Item`, and `Inventario` support deep copying |
+| Factory Method | `Inimigo.criarInimigoAleatorio()` scales enemy stats to the player's level |
