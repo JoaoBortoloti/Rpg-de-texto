@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 public class Jogo {
     private Personagem jogador;
     private BufferedReader reader;
+    private CombateService combateService;
     private int xpAtual;
     private int xpProximoNivel;
     private boolean jogoAtivo;
@@ -34,6 +35,7 @@ public class Jogo {
      */
     public Jogo() {
         this.reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        this.combateService = new CombateService(reader);
         this.xpAtual = 0;
         this.xpProximoNivel = GameConfig.XP_INICIAL_PROXIMO_NIVEL;
         this.jogoAtivo = true;
@@ -152,7 +154,7 @@ public class Jogo {
                     explorar();
                     break;
                 case 2:
-                    usarItem(null);
+                    combateService.usarItem(jogador, null);
                     break;
                 case 3:
                     verInventario();
@@ -290,63 +292,9 @@ public class Jogo {
         System.out.println("\n" + boss.getStatus());
         aguardarEnter();
         
-        batalharBoss(boss);
-    }
-
-    private void batalharBoss(Inimigo boss) {
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("BATALHA FINAL!");
-        System.out.println("=".repeat(50));
-        
-        while (jogador.estaVivo() && boss.estaVivo()) {
-            System.out.println("\n--- Seu turno ---");
-            System.out.println("1. Atacar");
-            System.out.println("2. Usar item");
-            System.out.println("3. Habilidade especial");
-            
-            int acao = lerOpcao(1, 3);
-            
-            if (acao == 1) {
-                int rolagemJogador = Dado.rolarD6();
-                System.out.println("Você rolou: " + rolagemJogador);
-                
-                int danoJogador = jogador.calcularDano(rolagemJogador);
-                boss.receberDano(danoJogador);
-                
-                System.out.println("Você causou " + danoJogador + " de dano!");
-                System.out.println(boss.getStatus());
-                
-            } else if (acao == 2) {
-                usarItem(boss);
-                continue;
-            } else if (acao == 3) {
-                String resultado = jogador.usarHabilidadeEspecial(boss);
-                System.out.println(resultado);
-                System.out.println(boss.getStatus());
-            }
-            
-            if (!boss.estaVivo()) {
-                vitoriaBoss(boss);
-                return;
-            }
-            
-            System.out.println("\n--- Turno do " + boss.getNome() + " ---");
-            int rolagemBoss = Dado.rolarD6();
-            System.out.println(boss.getNome() + " rolou: " + rolagemBoss);
-            
-            if (Dado.rolar(10) >= GameConfig.BOSS_LIMIAR_ESPECIAL) {
-                System.out.println(boss.getNome() + " usa ATAQUE SOMBRIO!");
-                int danoEspecial = boss.calcularDano(rolagemBoss) * 2;
-                jogador.receberDano(danoEspecial);
-                System.out.println("Você recebeu " + danoEspecial + " de dano devastador!");
-            } else {
-                int danoBoss = boss.calcularDano(rolagemBoss);
-                jogador.receberDano(danoBoss);
-                System.out.println("Você recebeu " + danoBoss + " de dano!");
-            }
-            
-            System.out.println(jogador.getStatus());
-            aguardarEnter();
+        ResultadoCombate resultado = combateService.combater(jogador, boss, false, true);
+        if (resultado == ResultadoCombate.VITORIA) {
+            vitoriaBoss(boss);
         }
     }
 
@@ -386,72 +334,11 @@ public class Jogo {
         Inimigo inimigo = Inimigo.criarInimigoAleatorio(jogador.getNivel());
         System.out.println("\nUm " + inimigo.getNome() + " apareceu!");
         System.out.println(inimigo.getStatus());
-        
-        batalhar(inimigo);
-    }
 
-    private void batalhar(Inimigo inimigo) {
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("COMBATE INICIADO!");
-        System.out.println("=".repeat(50));
-        
-        while (jogador.estaVivo() && inimigo.estaVivo()) {
-            System.out.println("\n--- Seu turno ---");
-            System.out.println("1. Atacar");
-            System.out.println("2. Usar item");
-            System.out.println("3. Tentar fugir");
-            System.out.println("4. Habilidade especial");
-            
-            int acao = lerOpcao(1, 4);
-            
-            if (acao == 1) {
-                int rolagemJogador = Dado.rolarD6();
-                System.out.println("Você rolou: " + rolagemJogador);
-                
-                int danoJogador = jogador.calcularDano(rolagemJogador);
-                inimigo.receberDano(danoJogador);
-                
-                System.out.println("Você causou " + danoJogador + " de dano!");
-                System.out.println(inimigo.getStatus());
-                
-            } else if (acao == 2) {
-                usarItem(inimigo);
-                continue;
-            } else if (acao == 3) {
-                if (tentarFugir()) {
-                    System.out.println("Você fugiu com sucesso!");
-                    return;
-                } else {
-                    System.out.println("Não conseguiu fugir!");
-                }
-            } else if (acao == 4) {
-                String resultado = jogador.usarHabilidadeEspecial(inimigo);
-                System.out.println(resultado);
-                System.out.println(inimigo.getStatus());
-            }
-            
-            if (!inimigo.estaVivo()) {
-                vitoria(inimigo);
-                return;
-            }
-            
-            System.out.println("\n--- Turno do inimigo ---");
-            int rolagemInimigo = Dado.rolarD6();
-            System.out.println(inimigo.getNome() + " rolou: " + rolagemInimigo);
-            
-            int danoInimigo = inimigo.calcularDano(rolagemInimigo);
-            jogador.receberDano(danoInimigo);
-            
-            System.out.println("Você recebeu " + danoInimigo + " de dano!");
-            System.out.println(jogador.getStatus());
-            
-            aguardarEnter();
+        ResultadoCombate resultado = combateService.combater(jogador, inimigo, true, false);
+        if (resultado == ResultadoCombate.VITORIA) {
+            vitoria(inimigo);
         }
-    }
-
-    private boolean tentarFugir() {
-        int rolagem = Dado.rolarD20();
-        return rolagem >= GameConfig.LIMIAR_FUGA;
     }
 
     private void vitoria(Inimigo inimigo) {
@@ -539,71 +426,6 @@ public class Jogo {
         jogador.receberDano(dano);
         System.out.println("Você recebeu " + dano + " de dano!");
         System.out.println(jogador.getStatus());
-    }
-
-    private void usarItem(Inimigo alvoEmCombate) {
-        if (jogador.getInventario().estaVazio()) {
-            System.out.println("Seu inventário está vazio!");
-            return;
-        }
-        
-        System.out.println("\n" + jogador.getInventario());
-        System.out.print("Digite o número do item (ou 0 para cancelar): ");
-        
-        int escolha = lerOpcao(0, jogador.getInventario().getTamanho());
-        
-        if (escolha == 0) {
-            return;
-        }
-        
-        Item item = jogador.getInventario().buscarPorIndice(escolha - 1);
-
-        if (item == null) {
-            System.out.println("Item inválido!");
-            return;
-        }
-        
-        boolean consumiu = aplicarEfeitoItem(item, alvoEmCombate);
-        if (consumiu) {
-            jogador.getInventario().remover(item.getNome(), 1);
-            System.out.println(item.getNome() + " usado!");
-        }
-    }
-
-    private boolean aplicarEfeitoItem(Item item, Inimigo alvoEmCombate) {
-        switch (item.getEfeito()) {
-            case CURA:
-                jogador.curar(item.getValorEfeito());
-                System.out.println("Você recuperou " + item.getValorEfeito() + " HP!");
-                return true;
-
-            case BUFF_ATAQUE:
-                jogador.setAtaque(jogador.getAtaque() + item.getValorEfeito());
-                System.out.println("Seu ataque aumentou em " + item.getValorEfeito() + "!");
-                return true;
-
-            case BUFF_DEFESA:
-                jogador.setDefesa(jogador.getDefesa() + item.getValorEfeito());
-                System.out.println("Sua defesa aumentou em " + item.getValorEfeito() + "!");
-                return true;
-
-            case DANO:
-                if (alvoEmCombate == null) {
-                    System.out.println("Este item só pode ser usado em combate!");
-                    return false;
-                }
-                int danoBase = item.getValorEfeito();
-                int variacao = Dado.rolarD6() - 3;
-                int danoTotal = Math.max(1, danoBase + variacao);
-                alvoEmCombate.receberDano(danoTotal);
-                System.out.println("Você usou " + item.getNome() + " e causou " + danoTotal + " de dano em " + alvoEmCombate.getNome() + "!");
-                System.out.println(alvoEmCombate.getStatus());
-                return true;
-
-            default:
-                System.out.println("Efeito especial aplicado!");
-                return true;
-        }
     }
 
     private void verInventario() {
