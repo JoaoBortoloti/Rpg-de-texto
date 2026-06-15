@@ -5,24 +5,27 @@ import itens.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.FileReader;
-import java.io.PrintWriter;
 import java.util.List;
-import java.util.ArrayList;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Classe principal de controle do RPG de texto.
+ * Orquestrador principal do RPG de texto.
  * <p>
- * Gerencia o loop principal do jogo, menus, exploração, combate,
- * save/load e progresso da história.
+ * Gerencia o loop principal, menus e a progressão da história, delegando
+ * responsabilidades específicas para serviços dedicados:
+ * <ul>
+ *   <li>{@link CombateService} — lógica de turno de combate</li>
+ *   <li>{@link ExploracaoService} — eventos aleatórios de exploração</li>
+ *   <li>{@link SaveSystem} — persistência em disco</li>
+ * </ul>
  */
 public class Jogo {
     private Personagem jogador;
-    private BufferedReader reader;
-    private CombateService combateService;
+    private final BufferedReader reader;
+    private final CombateService combateService;
+    private final ExploracaoService exploracaoService;
+    private final SaveSystem saveSystem;
+
     private int xpAtual;
     private int xpProximoNivel;
     private boolean jogoAtivo;
@@ -30,23 +33,20 @@ public class Jogo {
     private int capituloAtual;
     private boolean bossDerrotado;
 
-    /**
-     * Cria uma instância de jogo pronta para ser iniciada via {@link #iniciar()}.
-     */
     public Jogo() {
-        this.reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
-        this.combateService = new CombateService(reader);
-        this.xpAtual = 0;
-        this.xpProximoNivel = GameConfig.XP_INICIAL_PROXIMO_NIVEL;
-        this.jogoAtivo = true;
+        this.reader            = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        this.combateService    = new CombateService(reader);
+        this.exploracaoService = new ExploracaoService(combateService);
+        this.saveSystem        = new SaveSystem();
+
+        this.xpAtual               = 0;
+        this.xpProximoNivel        = GameConfig.XP_INICIAL_PROXIMO_NIVEL;
+        this.jogoAtivo             = true;
         this.exploracoesRealizadas = 0;
-        this.capituloAtual = 1;
-        this.bossDerrotado = false;
+        this.capituloAtual         = 1;
+        this.bossDerrotado         = false;
     }
 
-    /**
-     * Inicia o jogo, exibindo a tela inicial e o loop principal.
-     */
     public void iniciar() {
         exibirBanner();
         telaInicial();
@@ -58,32 +58,20 @@ public class Jogo {
         loopPrincipal();
     }
 
+    // ── Tela inicial ─────────────────────────────────────────────────────────
+
     private void telaInicial() {
         boolean escolhendo = true;
-
         while (escolhendo) {
             System.out.println("1. Novo jogo");
             System.out.println("2. Carregar jogo");
             System.out.println("0. Sair");
             System.out.print("Escolha: ");
 
-            int opcao = lerOpcao(0, 2);
-
-            switch (opcao) {
-                case 1:
-                    criarPersonagem();
-                    escolhendo = false;
-                    break;
-                case 2:
-                    boolean carregou = carregarJogo(true);
-                    if (carregou) {
-                        escolhendo = false;
-                    }
-                    break;
-                case 0:
-                    jogoAtivo = false;
-                    escolhendo = false;
-                    break;
+            switch (lerOpcao(0, 2)) {
+                case 1 -> { criarPersonagem(); escolhendo = false; }
+                case 2 -> { if (carregarJogo()) escolhendo = false; }
+                case 0 -> { jogoAtivo = false; escolhendo = false; }
             }
         }
     }
@@ -100,82 +88,43 @@ public class Jogo {
         System.out.println("1. Guerreiro - Alto HP e defesa, golpes críticos");
         System.out.println("2. Mago - Magia poderosa, baixa defesa");
         System.out.println("3. Arqueiro - Ataques precisos à distância");
-        
+
         int escolha = lerOpcao(1, 3);
-        
         System.out.print("\nDigite o nome do seu personagem: ");
         String nome = lerLinha();
-        
-        switch (escolha) {
-            case 1:
-                jogador = new Guerreiro(nome, 120, 15, 10, 1);
-                break;
-            case 2:
-                jogador = new Mago(nome, 80, 10, 5, 1);
-                break;
-            case 3:
-                jogador = new Arqueiro(nome, 100, 12, 7, 1);
-                break;
-        }
-        
-        jogador.getInventario().adicionar(new Item("Poção de Vida", "Restaura 30 HP", Efeito.CURA, 3, 30));
-        jogador.getInventario().adicionar(new Item("Poção de Força", "Aumenta ataque em 5", Efeito.BUFF_ATAQUE, 1, 5));
-        
+
+        jogador = switch (escolha) {
+            case 1 -> new Guerreiro(nome, 120, 15, 10, 1);
+            case 2 -> new Mago(nome, 80, 10, 5, 1);
+            default -> new Arqueiro(nome, 100, 12, 7, 1);
+        };
+
+        jogador.getInventario().adicionar(new Item("Poção de Vida",  "Restaura 30 HP",       Efeito.CURA,        3, 30));
+        jogador.getInventario().adicionar(new Item("Poção de Força", "Aumenta ataque em 5",  Efeito.BUFF_ATAQUE, 1, 5));
+
         System.out.println("\nPersonagem criado com sucesso!");
         System.out.println(jogador.getStatus());
     }
 
-    private void introducaoSeForNovoJogo() {
-        if (capituloAtual <= 1 && exploracoesRealizadas == 0 && !bossDerrotado) {
-            introducao();
-        }
-    }
-
-    private void introducao() {
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("CAPÍTULO 1: O DESPERTAR");
-        System.out.println("=".repeat(50));
-        System.out.println("Você acorda em uma floresta escura...");
-        System.out.println("Não se lembra de como chegou aqui.");
-        System.out.println("Ao longe, você vê as ruínas de um castelo antigo.");
-        System.out.println("Dizem que um poderoso ser habita lá...");
-        System.out.println("Sua jornada começa agora!");
-        System.out.println("=".repeat(50) + "\n");
-        aguardarEnter();
-    }
+    // ── Loop principal ────────────────────────────────────────────────────────
 
     private void loopPrincipal() {
         while (jogoAtivo && jogador.estaVivo() && !bossDerrotado) {
             exibirMenu();
-            int opcao = lerOpcao(1, 6);
-            
-            switch (opcao) {
-                case 1:
-                    explorar();
-                    break;
-                case 2:
-                    combateService.usarItem(jogador, null);
-                    break;
-                case 3:
-                    verInventario();
-                    break;
-                case 4:
-                    verStatus();
-                    break;
-                case 5:
-                    salvarJogo();
-                    break;
-                case 6:
-                    sair();
-                    break;
+            switch (lerOpcao(1, 6)) {
+                case 1 -> explorar();
+                case 2 -> combateService.usarItem(jogador, null);
+                case 3 -> System.out.println("\n" + jogador.getInventario());
+                case 4 -> verStatus();
+                case 5 -> saveSystem.salvar(jogador, xpAtual, xpProximoNivel,
+                                            capituloAtual, exploracoesRealizadas,
+                                            bossDerrotado, reader);
+                case 6 -> sair();
             }
         }
-        
-        if (!jogador.estaVivo()) {
-            gameOver();
-        } else if (bossDerrotado) {
-            finalVitorioso();
-        }
+
+        if (!jogador.estaVivo()) gameOver();
+        else if (bossDerrotado)  finalVitorioso();
     }
 
     private void exibirMenu() {
@@ -191,84 +140,77 @@ public class Jogo {
         System.out.print("Escolha: ");
     }
 
+    // ── Exploração e história ─────────────────────────────────────────────────
+
     private void explorar() {
         System.out.println("\nExplorando...");
         exploracoesRealizadas++;
-        
+
         if (exploracoesRealizadas % GameConfig.CADENCIA_HISTORIA == 0) {
             avancarHistoria();
             return;
         }
 
-        int evento = Dado.rolar(10);
-
-        if (evento <= GameConfig.LIMIAR_INIMIGO) {
-            encontrarInimigo();
-        } else if (evento <= GameConfig.LIMIAR_ITEM) {
-            encontrarItem();
-        } else if (evento == GameConfig.LIMIAR_ARMADILHA) {
-            armadilha();
-        } else {
-            System.out.println("Você explorou a área mas não encontrou nada interessante.");
+        Inimigo inimigoVencido = exploracaoService.processarEvento(jogador);
+        if (inimigoVencido != null) {
+            vitoria(inimigoVencido);
         }
     }
 
     private void avancarHistoria() {
         capituloAtual++;
-        
         System.out.println("\n" + "=".repeat(50));
-        
+
         switch (capituloAtual) {
-            case 2:
+            case 2 -> {
                 System.out.println("CAPÍTULO 2: A VILA ABANDONADA");
                 System.out.println("=".repeat(50));
                 System.out.println("Você encontra uma vila abandonada.");
                 System.out.println("Sinais de batalha estão por toda parte.");
                 System.out.println("Nas paredes, escritos em sangue: 'Ele vem à noite'.");
                 System.out.println("Você sente que está se aproximando do castelo...");
-                break;
-            
-            case 3:
+            }
+            case 3 -> {
                 System.out.println("CAPÍTULO 3: O CEMITÉRIO AMALDIÇOADO");
                 System.out.println("=".repeat(50));
                 System.out.println("Um cemitério surge à sua frente.");
                 System.out.println("Mortos-vivos vagam entre as lápides.");
                 System.out.println("Uma energia sombria emana do solo.");
                 System.out.println("O castelo está cada vez mais próximo...");
-                break;
-            
-            case 4:
+            }
+            case 4 -> {
                 System.out.println("CAPÍTULO 4: A PONTE QUEBRADA");
                 System.out.println("=".repeat(50));
                 System.out.println("Você chega a uma ponte sobre um abismo.");
                 System.out.println("Do outro lado, o castelo se ergue imponente.");
                 System.out.println("Criaturas guardam a passagem.");
                 System.out.println("Você está quase lá...");
-                break;
-            
-            case 5:
+            }
+            case 5 -> {
                 System.out.println("CAPÍTULO 5: OS PORTÕES DO CASTELO");
                 System.out.println("=".repeat(50));
                 System.out.println("Finalmente, você alcança os portões do castelo.");
                 System.out.println("Eles se abrem lentamente, rangendo.");
                 System.out.println("Uma voz ecoa: 'Bem-vindo, aventureiro...'");
                 System.out.println("Prepare-se para o confronto final!");
-                break;
-            
-            default:
+            }
+            default -> {
                 if (capituloAtual >= 6) {
                     iniciarBossFight();
                     return;
                 }
+            }
         }
-        
+
         System.out.println("=".repeat(50));
         aguardarEnter();
     }
 
+    // ── Boss ──────────────────────────────────────────────────────────────────
+
     private void iniciarBossFight() {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("CAPÍTULO FINAL: O VORATH O ETERNO");
+        System.out.println("CAPÍTULO FINAL: VORATH, O ETERNO");
         System.out.println("=".repeat(50));
         System.out.println("Você entra no salão principal do castelo.");
         System.out.println("No trono, uma figura sombria se levanta.");
@@ -276,7 +218,7 @@ public class Jogo {
         System.out.println("'Mas sua jornada termina aqui!'");
         System.out.println("=".repeat(50));
         aguardarEnter();
-        
+
         Inimigo boss = new Inimigo(
             "Vorath, o Eterno",
             GameConfig.BOSS_HP_BASE     + (jogador.getNivel() * GameConfig.BOSS_HP_POR_NIVEL),
@@ -285,15 +227,13 @@ public class Jogo {
             jogador.getNivel()          + GameConfig.BOSS_NIVEL_BONUS,
             "Boss Final"
         );
-        
-        boss.getInventario().adicionar(new Item("Elixir Lendário", "Restaura 100 HP", Efeito.CURA, 2, 100));
+        boss.getInventario().adicionar(new Item("Elixir Lendário",    "Restaura 100 HP",      Efeito.CURA,        2, 100));
         boss.getInventario().adicionar(new Item("Essência das Trevas", "Aumenta ataque em 10", Efeito.BUFF_ATAQUE, 1, 10));
-        
+
         System.out.println("\n" + boss.getStatus());
         aguardarEnter();
-        
-        ResultadoCombate resultado = combateService.combater(jogador, boss, false, true);
-        if (resultado == ResultadoCombate.VITORIA) {
+
+        if (combateService.combater(jogador, boss, false, true) == ResultadoCombate.VITORIA) {
             vitoriaBoss(boss);
         }
     }
@@ -305,12 +245,11 @@ public class Jogo {
         System.out.println("=".repeat(50));
         System.out.println("Você derrotou o " + boss.getNome() + "!");
         System.out.println("O castelo começa a desmoronar...");
-        System.out.println("A escuridão se dissipa...");
-        
+
         int xpGanho = boss.getRecompensaXP() * GameConfig.XP_BOSS_MULTIPLICADOR;
         xpAtual += xpGanho;
         System.out.println("\n" + xpGanho + " XP ganhos!");
-        
+
         saquearInimigo(boss);
         aguardarEnter();
     }
@@ -322,39 +261,25 @@ public class Jogo {
         System.out.println("Com o Vorath, o Eterno derrotado,");
         System.out.println("a paz retorna às terras.");
         System.out.println("Você é aclamado como herói!");
-        System.out.println("\nEstatísticas finais:");
-        System.out.println("Nível alcançado: " + jogador.getNivel());
-        System.out.println("XP total: " + xpAtual);
-        System.out.println("Explorações realizadas: " + exploracoesRealizadas);
+        System.out.printf("%nNível alcançado: %d%nXP total: %d%nExplorações: %d%n",
+                jogador.getNivel(), xpAtual, exploracoesRealizadas);
         System.out.println("\nParabéns, " + jogador.getNome() + "!");
         System.out.println("=".repeat(50));
     }
 
-    private void encontrarInimigo() {
-        Inimigo inimigo = Inimigo.criarInimigoAleatorio(jogador.getNivel());
-        System.out.println("\nUm " + inimigo.getNome() + " apareceu!");
-        System.out.println(inimigo.getStatus());
-
-        ResultadoCombate resultado = combateService.combater(jogador, inimigo, true, false);
-        if (resultado == ResultadoCombate.VITORIA) {
-            vitoria(inimigo);
-        }
-    }
+    // ── Pós-combate ───────────────────────────────────────────────────────────
 
     private void vitoria(Inimigo inimigo) {
         System.out.println("\n" + "=".repeat(50));
         System.out.println("VITÓRIA!");
         System.out.println("=".repeat(50));
         System.out.println("Você derrotou " + inimigo.getNome() + "!");
-        
-        int xpGanho = inimigo.getRecompensaXP();
-        xpAtual += xpGanho;
-        System.out.println(xpGanho + " XP");
-        
-        if (xpAtual >= xpProximoNivel) {
-            levelUp();
-        }
-        
+
+        xpAtual += inimigo.getRecompensaXP();
+        System.out.println(inimigo.getRecompensaXP() + " XP");
+
+        if (xpAtual >= xpProximoNivel) levelUp();
+
         saquearInimigo(inimigo);
         aguardarEnter();
     }
@@ -368,26 +293,19 @@ public class Jogo {
         jogador.setPontosVida(jogador.getPontosVidaMaximos());
         jogador.setAtaque(jogador.getAtaque() + GameConfig.BONUS_ATAQUE_LEVEL_UP);
         jogador.setDefesa(jogador.getDefesa() + GameConfig.BONUS_DEFESA_LEVEL_UP);
-        
+
         System.out.println("\nLEVEL UP! Agora você é nível " + jogador.getNivel());
-        System.out.println("HP máximo aumentado!");
-        System.out.println("Ataque e defesa aumentados!");
+        System.out.println("HP máximo, ataque e defesa aumentados!");
     }
 
-    /**
-     * Transfere os itens do inimigo para o inventário do jogador.
-     * Se o inventário estiver cheio, imprime uma mensagem e ignora o item.
-     */
     private void saquearInimigo(Inimigo inimigo) {
-        List<Item> itensInimigo = inimigo.getInventario().listarOrdenado();
-        
-        if (itensInimigo.isEmpty()) {
+        List<Item> itens = inimigo.getInventario().listarOrdenado();
+        if (itens.isEmpty()) {
             System.out.println("O inimigo não tinha itens.");
             return;
         }
-        
         System.out.println("\nItens encontrados:");
-        for (Item item : itensInimigo) {
+        for (Item item : itens) {
             System.out.println("  - " + item.getNome() + " (x" + item.getQuantidade() + ")");
             try {
                 jogador.getInventario().adicionar(item);
@@ -397,247 +315,53 @@ public class Jogo {
         }
     }
 
-    private void encontrarItem() {
-        int tipoItem = Dado.rolar(4);
-        Item item = null;
-        
-        switch (tipoItem) {
-            case 1:
-                item = new Item("Poção de Vida", "Restaura 30 HP", Efeito.CURA, 1, 30);
-                break;
-            case 2:
-                item = new Item("Poção de Força", "Aumenta ataque em 5", Efeito.BUFF_ATAQUE, 1, 5);
-                break;
-            case 3:
-                item = new Item("Poção de Defesa", "Aumenta defesa em 5", Efeito.BUFF_DEFESA, 1, 5);
-                break;
-            case 4:
-                item = new Item("Elixir Raro", "Restaura 50 HP", Efeito.CURA, 1, 50);
-                break;
-        }
-        
-        System.out.println("Você encontrou: " + item.getNome() + "!");
-        jogador.getInventario().adicionar(item);
-    }
+    // ── Carregamento de save ──────────────────────────────────────────────────
 
-    private void armadilha() {
-        System.out.println("Você caiu em uma armadilha!");
-        int dano = Dado.rolar(GameConfig.FACES_DADO_ARMADILHA);
-        jogador.receberDano(dano);
-        System.out.println("Você recebeu " + dano + " de dano!");
+    private boolean carregarJogo() {
+        SaveSystem.EstadoSalvo estado = saveSystem.carregar(reader);
+        if (estado == null) return false;
+
+        this.jogador               = estado.jogador;
+        this.xpAtual               = estado.xpAtual;
+        this.xpProximoNivel        = estado.xpProximoNivel;
+        this.capituloAtual         = estado.capituloAtual;
+        this.exploracoesRealizadas = estado.exploracoesRealizadas;
+        this.bossDerrotado         = estado.bossDerrotado;
+
+        System.out.println("\nSave carregado com sucesso!");
         System.out.println(jogador.getStatus());
+        System.out.printf("Capítulo: %d | Explorações: %d%n", capituloAtual, exploracoesRealizadas);
+        return true;
     }
 
-    private void verInventario() {
-        System.out.println("\n" + jogador.getInventario());
+    // ── Utilitários ───────────────────────────────────────────────────────────
+
+    private void introducaoSeForNovoJogo() {
+        if (capituloAtual <= 1 && exploracoesRealizadas == 0 && !bossDerrotado) {
+            System.out.println("\n" + "=".repeat(50));
+            System.out.println("CAPÍTULO 1: O DESPERTAR");
+            System.out.println("=".repeat(50));
+            System.out.println("Você acorda em uma floresta escura...");
+            System.out.println("Não se lembra de como chegou aqui.");
+            System.out.println("Ao longe, você vê as ruínas de um castelo antigo.");
+            System.out.println("Dizem que um poderoso ser habita lá...");
+            System.out.println("Sua jornada começa agora!");
+            System.out.println("=".repeat(50) + "\n");
+            aguardarEnter();
+        }
     }
 
     private void verStatus() {
         System.out.println("\n" + "=".repeat(50));
         System.out.println(jogador.getStatus());
-        System.out.println("XP: " + xpAtual + "/" + xpProximoNivel);
-        System.out.println("Capítulo: " + capituloAtual);
-        System.out.println("Explorações: " + exploracoesRealizadas);
+        System.out.printf("XP: %d/%d | Capítulo: %d | Explorações: %d%n",
+                xpAtual, xpProximoNivel, capituloAtual, exploracoesRealizadas);
         System.out.println("=".repeat(50));
-    }
-
-    private void salvarJogo() {
-        if (jogador == null) {
-            System.out.println("Não há jogo em andamento para salvar.");
-            return;
-        }
-
-        System.out.print("Digite o nome do save: ");
-        String nomeSave = lerLinha();
-        if (nomeSave == null || nomeSave.trim().isEmpty()) {
-            System.out.println("Nome de save inválido!");
-            return;
-        }
-
-        nomeSave = nomeSave.trim();
-
-        try {
-            File pastaSaves = new File("src/saves");
-            if (!pastaSaves.exists()) {
-                pastaSaves.mkdirs();
-            }
-
-            File arquivoSave = new File(pastaSaves, nomeSave + ".txt");
-            try (PrintWriter pw = new PrintWriter(new FileWriter(arquivoSave))) {
-                pw.println("CLASSE=" + jogador.getClass().getSimpleName());
-                pw.println("NOME=" + jogador.getNome());
-                pw.println("NIVEL=" + jogador.getNivel());
-                pw.println("HP_ATUAL=" + jogador.getPontosVida());
-                pw.println("HP_MAX=" + jogador.getPontosVidaMaximos());
-                pw.println("ATAQUE=" + jogador.getAtaque());
-                pw.println("DEFESA=" + jogador.getDefesa());
-                pw.println("XP_ATUAL=" + xpAtual);
-                pw.println("XP_PROX=" + xpProximoNivel);
-                pw.println("CAPITULO=" + capituloAtual);
-                pw.println("EXPLORACOES=" + exploracoesRealizadas);
-                pw.println("BOSS_DERROTADO=" + bossDerrotado);
-
-                pw.println("ITENS_INICIO");
-                for (Item item : jogador.getInventario().listarOrdenado()) {
-                    pw.println(
-                        item.getNome() + ";" +
-                        item.getDescricao() + ";" +
-                        item.getEfeito().name() + ";" +
-                        item.getQuantidade() + ";" +
-                        item.getValorEfeito()
-                    );
-                }
-                pw.println("ITENS_FIM");
-            }
-
-            System.out.println("Jogo salvo em: " + arquivoSave.getPath());
-        } catch (Exception e) {
-            System.out.println("Erro ao salvar jogo: " + e.getMessage());
-        }
-    }
-
-    private boolean carregarJogo(boolean fromTelaInicial) {
-        File pastaSaves = new File("src/saves");
-        if (!pastaSaves.exists() || !pastaSaves.isDirectory()) {
-            System.out.println("Nenhum save encontrado (pasta src/saves não existe).");
-            return false;
-        }
-
-        File[] arquivos = pastaSaves.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
-        if (arquivos == null || arquivos.length == 0) {
-            System.out.println("Nenhum arquivo de save encontrado em src/saves.");
-            return false;
-        }
-
-        System.out.println("\n=== Saves disponíveis ===");
-        List<File> listaSaves = new ArrayList<>();
-        for (File f : arquivos) {
-            listaSaves.add(f);
-        }
-        listaSaves.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
-
-        for (int i = 0; i < listaSaves.size(); i++) {
-            String nome = listaSaves.get(i).getName();
-            if (nome.toLowerCase().endsWith(".txt")) {
-                nome = nome.substring(0, nome.length() - 4);
-            }
-            System.out.printf("%d. %s%n", i + 1, nome);
-        }
-        System.out.println("0. Cancelar");
-        System.out.print("Escolha o save: ");
-
-        int escolha = lerOpcao(0, listaSaves.size());
-        if (escolha == 0) {
-            System.out.println("Carregamento cancelado.");
-            return false;
-        }
-
-        File arquivoSave = listaSaves.get(escolha - 1);
-
-        try (BufferedReader br = new BufferedReader(new FileReader(arquivoSave))) {
-            String linha;
-            String classe = null;
-            String nome = null;
-            int nivel = 1;
-            int hpAtual = 0;
-            int hpMax = 0;
-            int ataque = 0;
-            int defesa = 0;
-            int xpAtualLido = 0;
-            int xpProxLido = 100;
-            int capituloLido = 1;
-            int exploracoesLidas = 0;
-            boolean bossDerrotadoLido = false;
-
-            List<Item> itensLidos = new ArrayList<>();
-            boolean lendoItens = false;
-
-            while ((linha = br.readLine()) != null) {
-                if ("ITENS_INICIO".equals(linha)) {
-                    lendoItens = true;
-                    continue;
-                }
-                if ("ITENS_FIM".equals(linha)) {
-                    lendoItens = false;
-                    continue;
-                }
-
-                if (lendoItens) {
-                    String[] partes = linha.split(";");
-                    if (partes.length == 5) {
-                        String nItem = partes[0];
-                        String desc = partes[1];
-                        Efeito efeito = Efeito.valueOf(partes[2]);
-                        int qtd = Integer.parseInt(partes[3]);
-                        int val = Integer.parseInt(partes[4]);
-                        itensLidos.add(new Item(nItem, desc, efeito, qtd, val));
-                    }
-                } else {
-                    String[] partes = linha.split("=", 2);
-                    if (partes.length != 2) continue;
-                    String chave = partes[0];
-                    String valor = partes[1];
-
-                    switch (chave) {
-                        case "CLASSE": classe = valor; break;
-                        case "NOME": nome = valor; break;
-                        case "NIVEL": nivel = Integer.parseInt(valor); break;
-                        case "HP_ATUAL": hpAtual = Integer.parseInt(valor); break;
-                        case "HP_MAX": hpMax = Integer.parseInt(valor); break;
-                        case "ATAQUE": ataque = Integer.parseInt(valor); break;
-                        case "DEFESA": defesa = Integer.parseInt(valor); break;
-                        case "XP_ATUAL": xpAtualLido = Integer.parseInt(valor); break;
-                        case "XP_PROX": xpProxLido = Integer.parseInt(valor); break;
-                        case "CAPITULO": capituloLido = Integer.parseInt(valor); break;
-                        case "EXPLORACOES": exploracoesLidas = Integer.parseInt(valor); break;
-                        case "BOSS_DERROTADO": bossDerrotadoLido = Boolean.parseBoolean(valor); break;
-                    }
-                }
-            }
-
-            if ("Guerreiro".equals(classe)) {
-                jogador = new Guerreiro(nome, hpMax, ataque, defesa, nivel);
-            } else if ("Mago".equals(classe)) {
-                jogador = new Mago(nome, hpMax, ataque, defesa, nivel);
-            } else if ("Arqueiro".equals(classe)) {
-                jogador = new Arqueiro(nome, hpMax, ataque, defesa, nivel);
-            } else {
-                System.out.println("Classe inválida no save!");
-                return false;
-            }
-
-            jogador.setPontosVidaMaximos(hpMax);
-            jogador.setPontosVida(hpAtual);
-            jogador.setAtaque(ataque);
-            jogador.setDefesa(defesa);
-            jogador.setNivel(nivel);
-
-            jogador.getInventario().limpar();
-            for (Item item : itensLidos) {
-                jogador.getInventario().adicionar(item);
-            }
-
-            this.xpAtual = xpAtualLido;
-            this.xpProximoNivel = xpProxLido;
-            this.capituloAtual = capituloLido;
-            this.exploracoesRealizadas = exploracoesLidas;
-            this.bossDerrotado = bossDerrotadoLido;
-
-            System.out.println("\nSave carregado com sucesso!");
-            System.out.println(jogador.getStatus());
-            System.out.println("Capítulo: " + capituloAtual + " | Explorações: " + exploracoesRealizadas);
-
-            return true;
-        } catch (Exception e) {
-            System.out.println("Erro ao carregar jogo: " + e.getMessage());
-            return false;
-        }
     }
 
     private void sair() {
         System.out.println("\nTem certeza que deseja sair? (s/n)");
-        String resposta = lerLinha();
-        if (resposta.equalsIgnoreCase("s")) {
+        if (lerLinha().equalsIgnoreCase("s")) {
             jogoAtivo = false;
             System.out.println("\nObrigado por jogar!");
         }
@@ -647,20 +371,15 @@ public class Jogo {
         System.out.println("\n" + "=".repeat(50));
         System.out.println("GAME OVER");
         System.out.println("=".repeat(50));
-        System.out.println("Você foi derrotado...");
-        System.out.println("Nível alcançado: " + jogador.getNivel());
-        System.out.println("XP total: " + xpAtual);
-        System.out.println("Capítulo alcançado: " + capituloAtual);
+        System.out.printf("Você foi derrotado...%nNível: %d | XP: %d | Capítulo: %d%n",
+                jogador.getNivel(), xpAtual, capituloAtual);
     }
 
     private int lerOpcao(int min, int max) {
         while (true) {
             try {
-                String linha = reader.readLine();
-                int opcao = Integer.parseInt(linha.trim());
-                if (opcao >= min && opcao <= max) {
-                    return opcao;
-                }
+                int opcao = Integer.parseInt(reader.readLine().trim());
+                if (opcao >= min && opcao <= max) return opcao;
                 System.out.print("Opção inválida! Digite entre " + min + " e " + max + ": ");
             } catch (IOException | NumberFormatException e) {
                 System.out.print("Entrada inválida! Digite um número: ");
@@ -671,10 +390,7 @@ public class Jogo {
     private String lerLinha() {
         try {
             String linha = reader.readLine();
-            if (linha == null) {
-                return "";
-            }
-            return linha.trim();
+            return linha == null ? "" : linha.trim();
         } catch (IOException e) {
             return "";
         }
@@ -682,9 +398,6 @@ public class Jogo {
 
     private void aguardarEnter() {
         System.out.println("\n[Pressione ENTER para continuar]");
-        try {
-            reader.readLine();
-        } catch (IOException e) {
-        }
+        try { reader.readLine(); } catch (IOException ignored) {}
     }
 }
