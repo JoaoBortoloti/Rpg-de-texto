@@ -1,79 +1,50 @@
-🧙‍♂️ RPG de Texto – Projeto POO em Java
-📖 Sobre o Projeto
+# RPG de Texto – Projeto POO em Java
 
-Este é um RPG de texto em Java desenvolvido com o objetivo de demonstrar, na prática, os principais pilares e recursos da Programação Orientada a Objetos (POO).
+## Sobre o Projeto
 
-O projeto utiliza:
+RPG de texto em Java desenvolvido para demonstrar, na prática, os principais pilares da Programação Orientada a Objetos. O projeto cobre abstração, encapsulamento, herança, polimorfismo, composição, interfaces, enums, `Comparable` e construtores de cópia.
 
-Abstração
+## Pré-requisitos
 
-Encapsulamento
+- Java 17+
+- Maven 3.8+
 
-Herança
+## Build e Execução
 
-Polimorfismo
+```bash
+# Compilar
+mvn compile
 
-Composição
+# Rodar o jogo
+mvn exec:java -Dexec.mainClass="sistema.Main"
 
-Interfaces
+# Rodar os testes
+mvn test
+```
 
-Enums
+## Estrutura do Projeto
 
-Comparabilidade (Comparable)
+```
+src/
+├── main/java/
+│   ├── interfaces/   Atacavel — contrato de combate
+│   ├── itens/        Item, Inventario, Efeito
+│   ├── personagens/  Personagem (abstract), Guerreiro, Mago, Arqueiro, Inimigo
+│   └── sistema/      Dado, Jogo, Main
+└── test/java/        Suites de testes unitários por pacote
+```
 
-Clonagem (clone())
+## Conceitos Aplicados
 
-Além disso, o código foi estruturado para facilitar evolução, testes e entendimento da arquitetura.
-
-🎮 Como Jogar
-✔️ Pré-requisitos
-
-Java 17 ou superior instalado
-
-Terminal/Prompt de comando
-
-Entrar na pasta raiz do projeto (onde ficam as pastas src e bin)
-
-⚒️ Compilação e Execução
-1. Compile o projeto em UTF-8
-
-No terminal, dentro da pasta do projeto, execute:
-
-*javac -encoding UTF-8 -d bin -sourcepath src src\sistema\Main.java*
-
-Isso irá gerar os arquivos .class dentro da pasta bin/, mantendo a estrutura de pacotes.
-
-2. Execute o jogo
-*java -cp bin sistema.Main*
-
-🧠 Conceitos Aplicados
-
-O projeto aborda de forma prática:
-
-Classes e Objetos
-
-Árvore de herança para personagens (ex: Personagem → Guerreiro/Mago/etc.)
-
-Interfaces para comportamentos (ex: Atacável, Defensável)
-
-Composição para inventário, armas e habilidades
-
-Polimorfismo em ações de combate
-
-Uso de Enums para categorias e efeitos
-
-Implementação de Comparable para ordenação
-
-Clonagem de personagens/itens quando necessário
-
-📌 Objetivo Educacional
-
-Este RPG foi criado para fins de estudo, servindo como base para:
-
-Exercícios de POO
-
-Treinamento de lógica de programação
-
-Exploração de arquitetura orientada a objetos
-
-Evolução para projetos maiores (ex: RPG com interface gráfica ou versão online)
+| Conceito | Onde |
+|---|---|
+| Abstração | `Personagem` força subclasses a implementar `usarHabilidadeEspecial()` |
+| Encapsulamento | Atributos privados com getters/setters validados |
+| Herança | `Guerreiro`, `Mago`, `Arqueiro`, `Inimigo` estendem `Personagem` |
+| Polimorfismo | `calcularDano()` tem comportamento distinto em cada subclasse |
+| Composição | `Personagem` contém `Inventario` que contém `Item` |
+| Interface | `Atacavel` define o contrato `calcularDano`, `receberDano`, `estaVivo` |
+| Enum | `Efeito` tipifica os efeitos possíveis de um item |
+| Comparable | `Item` implementa `compareTo` para ordenação natural |
+| Construtor de cópia | `Personagem`, `Item` e `Inventario` suportam cópia profunda |
+| Factory Method | `Inimigo.criarInimigoAleatorio()` escala com o nível do jogador |
